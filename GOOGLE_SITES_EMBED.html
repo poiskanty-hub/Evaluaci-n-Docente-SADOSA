@@ -1,0 +1,2656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santo Domingo Savio - Evaluación Docente</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Vue 3 Global CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;850&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+    }
+    .heading-font {
+      font-family: "Space Grotesk", sans-serif;
+    }
+    .mono-font {
+      font-family: "JetBrains Mono", monospace;
+    }
+    /* Hide scrollbars during transitions */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @media print {
+      .print\:hidden {
+        display: none !important;
+      }
+      .print\:shadow-none {
+        box-shadow: none !important;
+      }
+      .print\:border-0 {
+        border-width: 0 !important;
+      }
+    }
+  </style>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased">
+
+  <div id="app" class="flex flex-col min-h-screen" v-cloak>
+    
+    <!-- GLOBAL BANNER HEADER (HIDDEN IN PRINT) -->
+    <header class="bg-blue-900 text-white shadow-md print:hidden w-full">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        
+        <!-- Brand logo -->
+        <button 
+          @click="navigate('home')"
+          class="flex items-center gap-3 cursor-pointer group text-left bg-transparent border-0 p-0 hover:opacity-90 transition-opacity"
+        >
+          <div class="bg-amber-400 p-2 rounded-xl text-blue-950 group-hover:scale-110 transition-transform">
+            <i data-lucide="graduation-cap" class="h-6 w-6"></i>
+          </div>
+          <div>
+            <h1 class="text-sm sm:text-base font-extrabold tracking-tight uppercase heading-font text-white">
+              Santo Domingo Savio
+            </h1>
+            <p class="text-[10px] sm:text-xs text-blue-200 uppercase font-bold tracking-widest leading-none">
+              Particular • Secundaria
+            </p>
+          </div>
+        </button>
+
+        <!-- Right side utility buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          
+          <!-- Sync / Connection Health Indicator -->
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider mr-1"
+                :class="apiHealthy ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'">
+            <span class="h-1.5 w-1.5 rounded-full" :class="apiHealthy ? 'bg-emerald-450 animate-pulse' : 'bg-rose-500'"></span>
+            {{ apiHealthy ? 'Sincronizado' : 'Reconectando...' }}
+          </span>
+
+          <!-- Master Lock status bar control -->
+          <button
+            type="button"
+            @click="openMasterLockModal"
+            class="inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer"
+            :class="isLocked 
+              ? 'bg-red-500/20 text-red-100 border-red-500/50 hover:bg-red-500/30' 
+              : 'bg-emerald-500/20 text-emerald-100 border-emerald-500/50 hover:bg-emerald-500/30'"
+            title="Control de Bloqueo General de Dispositivos"
+          >
+            <div class="h-2 w-2 rounded-full" :class="isLocked ? 'bg-red-500 animate-pulse' : 'bg-emerald-400'" />
+            <span class="mono-font">Red SADOSA: {{ isLocked ? "PAUSADO" : "ABIERTO" }}</span>
+          </button>
+
+          <!-- Navigation triggers -->
+          <button
+            v-if="activeView !== 'admin-dashboard'"
+            type="button"
+            @click="handleAdminToggle"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/10 transition-all border border-blue-850"
+          >
+            <i data-lucide="lock" class="h-3.5 w-3.5 text-amber-400"></i>
+            <span>Ver Informes</span>
+          </button>
+          
+          <button
+            v-if="activeView === 'admin-dashboard'"
+            type="button"
+            @click="adminLogout"
+            class="font-bold text-xs bg-red-650/35 border border-red-500 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-red-100 transition-all"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN CONTEXT VIEWPORT -->
+    <main class="flex-grow flex flex-col">
+      
+      <!-- VIEW: HOME VIEW -->
+      <section v-if="activeView === 'home'" class="flex-grow flex items-center justify-center py-12 px-4 print:hidden">
+        <div class="max-w-2xl w-full bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-lg space-y-8 relative overflow-hidden">
+          
+          <!-- Gradient Top Margin accent -->
+          <span class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-amber-400 to-indigo-700"></span>
+
+          <div class="space-y-4 flex flex-col items-center">
+            <div class="space-y-2 text-center">
+              <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight heading-font">
+                Evaluación Docente <span class="text-blue-700">2026</span>
+              </h2>
+              <p class="text-sm sm:text-base text-slate-600 font-medium max-w-lg mx-auto">
+                Tu participación ayuda a centralizar sugerencias de forma 100% anónima. Formulado para el primer trimestre del nivel secundaria, fortaleciendo nuestra institución de forma colaborativa.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature items grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-xl mx-auto">
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+              <span class="text-blue-700 font-extrabold text-[10px] uppercase font-mono border-b pb-0.5 mb-1 bg-blue-50/50 rounded-md py-0.5 px-1.5 inline-block">100% Anónimo</span>
+              <p class="text-slate-500 text-[11px] leading-tight font-medium">Las opiniones y calificaciones individuales de los alumnos son estrictamente privadas.</p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+              <span class="text-blue-700 font-extrabold text-[10px] uppercase font-mono border-b pb-0.5 mb-1 bg-blue-50/50 rounded-md py-0.5 px-1.5 inline-block">Mínimo 10 Maestros</span>
+              <p class="text-slate-500 text-[11px] leading-tight font-medium">Selecciona un grupo de por lo menos 10 docentes a la vez para evaluarlos en fila.</p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+              <span class="text-blue-700 font-extrabold text-[10px] uppercase font-mono border-b pb-0.5 mb-1 bg-blue-50/50 rounded-md py-0.5 px-1.5 inline-block">Sala de Cómputo</span>
+              <p class="text-slate-500 text-[11px] leading-tight font-medium">Optimizado para el ingreso fluido de múltiples estudiantes en simultáneo con volcado automático.</p>
+            </div>
+          </div>
+
+          <!-- Main Launch buttons -->
+          <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
+            
+            <!-- When System is LOCKED globally by Dirección -->
+            <div v-if="isLocked" class="w-full sm:w-auto inline-flex flex-col items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                disabled
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-200 text-slate-400 font-bold text-base rounded-xl cursor-not-allowed border border-slate-300"
+              >
+                <i data-lucide="lock" class="h-5 w-5 text-red-500 animate-pulse"></i>
+                <span>Evaluación Pausada</span>
+              </button>
+              <span class="text-[9px] text-red-700 bg-red-50 border border-red-100 py-0.5 px-2.5 rounded-md font-mono font-black uppercase tracking-wider flex items-center gap-1">
+                <i data-lucide="alert-circle" class="h-3 w-3 text-red-500"></i>
+                Bloqueada por Dirección
+              </span>
+            </div>
+
+            <!-- When unlocked and open -->
+            <button
+              v-else
+              type="button"
+              @click="navigate('evaluation')"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 cursor-pointer heading-font"
+            >
+              <span>Evaluar a mis Docentes</span>
+              <i data-lucide="chevron-right" class="h-5 w-5"></i>
+            </button>
+            
+            <button
+              type="button"
+              @click="handleAdminToggle"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50/70 hover:text-slate-900 transition-all font-sans"
+            >
+              <i data-lucide="bar-chart-3" class="h-4 w-4 text-blue-600"></i>
+              <span>Ver Consolidado</span>
+            </button>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex justify-between items-center text-[11px] font-mono text-slate-400">
+            <span>Gestión Educativa 2026</span>
+            <span>U.E. SANTO DOMINGO SAVIO</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: STUDENT EVALUATION SYSTEM -->
+      <section v-if="activeView === 'evaluation'" class="flex-grow py-8 px-4 max-w-5xl w-full mx-auto print:hidden">
+        
+        <!-- Locked overlay if the direction executes lock general during evaluation cycle -->
+        <div v-if="isLocked" class="max-w-2xl mx-auto px-6 py-16 text-center bg-white rounded-3xl border border-slate-200 shadow-xl space-y-6">
+          <div class="mx-auto w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center border border-red-200 animate-pulse">
+            <i data-lucide="lock" class="h-7 w-7"></i>
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-2xl font-black text-slate-950 heading-font">
+              Evaluación Pausada por Dirección
+            </h3>
+            <p class="text-sm text-slate-600 max-w-md mx-auto">
+              El Administrador de la Unidad Educativa ha colocado la evaluación de docentes en pausa de forma generalizada.
+            </p>
+          </div>
+          
+          <div class="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl text-slate-700 text-xs text-left font-semibold leading-relaxed max-w-lg mx-auto flex items-start gap-3">
+            <i data-lucide="alert-circle" class="h-5 w-5 text-amber-600 shrink-0 mt-0.5"></i>
+            <div class="space-y-1">
+              <p class="font-bold text-amber-900">¿Qué pasa con mis datos introducidos?</p>
+              <p class="text-slate-600 font-medium font-sans">No te preocupes. No cierres ni recargues esta pestaña. En cuanto la Dirección habilite de nuevo el sistema, tu formulario se desbloqueará de inmediato para que continúes sin perder las respuestas cargadas.</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="navigate('home')"
+            class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all border border-slate-200"
+          >
+            <i data-lucide="undo-2" class="h-4 w-4"></i>
+            <span>Volver al Inicio</span>
+          </button>
+        </div>
+
+        <!-- EVALUATION ACTIVE FORMS -->
+        <div v-else class="space-y-6">
+          
+          <!-- Stepper tracker -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center text-xs">
+            <span class="font-bold uppercase text-slate-500 tracking-wider font-mono">Paso {{ evalStep }} de 5:</span>
+            <span class="font-extrabold text-blue-700 uppercase" v-if="evalStep === 1">Configuración y Selección</span>
+            <span class="font-extrabold text-blue-700 uppercase" v-if="evalStep === 2">Calificación de Desempeño</span>
+            <span class="font-extrabold text-blue-700 uppercase" v-if="evalStep === 3">Sugerencias Institucionales</span>
+            <span class="font-extrabold text-blue-700 uppercase" v-if="evalStep === 4">Revisión y Envió Final</span>
+            <span class="font-extrabold text-emerald-600 uppercase" v-if="evalStep === 5">Completado</span>
+            
+            <div class="hidden sm:flex items-center gap-1 shadow-inner bg-slate-100 p-1 rounded-lg">
+              <span v-for="i in 5" :key="i" class="h-2 w-6 rounded-full transition-colors"
+                    :class="evalStep >= i ? (evalStep === 5 ? 'bg-emerald-500' : 'bg-blue-600') : 'bg-slate-200'"></span>
+            </div>
+          </div>
+
+          <!-- STEP 1: SELECT COURSE & TEACHERS -->
+          <div v-if="evalStep === 1" class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-8">
+            
+            <!-- Header -->
+            <div class="border-b border-slate-150 pb-4 space-y-2 text-left">
+              <h2 class="text-xl font-extrabold text-slate-900 heading-font">Paso 1: Tu Curso y Docentes</h2>
+              <p class="text-xs text-slate-600">Por favor, indica tu curso y selecciona por lo menos 10 docentes de secundaria que te imparten clases actualmente.</p>
+            </div>
+
+            <!-- Select indicators -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Course selector -->
+              <div class="space-y-1.5 text-left">
+                <label class="block text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Selecciona tu Curso Escolar:</label>
+                <select v-model="selectedCourse" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold cursor-pointer">
+                  <option value="">-- Elige tu curso --</option>
+                  <option v-for="c in courses" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+
+              <!-- Trimester Selector -->
+              <div class="space-y-1.5 text-left">
+                <label class="block text-xs font-mono font-bold uppercase tracking-wider text-slate-700">Periodo Académico:</label>
+                <select v-model="selectedTrimester" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold cursor-pointer">
+                  <option value="1er Trimestre">1er Trimestre - Gestión 2026</option>
+                  <option value="2do Trimestre">2do Trimestre - Gestión 2026</option>
+                  <option value="3er Trimestre">3er Trimestre - Gestión 2026</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Teachers listing header -->
+            <div class="space-y-4">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                  <i data-lucide="list-filter" class="h-4 w-4 text-blue-600"></i>
+                  <span>Lista General de Docentes</span>
+                </h3>
+                
+                <!-- Quick tools -->
+                <div class="flex gap-2 w-full sm:w-auto">
+                  <button type="button" @click="selectAllTeachers" class="w-1/2 sm:w-auto px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 transition-colors">
+                    Marcar Todos
+                  </button>
+                  <button type="button" @click="clearAllTeachers" class="w-1/2 sm:w-auto px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-lg border border-red-100 transition-colors">
+                    Limpiar Selecciones
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filter Search box -->
+              <div class="relative">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                <input 
+                  type="text" 
+                  v-model="teacherSearchQuery" 
+                  placeholder="Escribe el apellido o materia para buscar un docente..." 
+                  class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-300 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-medium"
+                />
+              </div>
+
+              <!-- Selected validation bar -->
+              <div class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-semibold"
+                   :class="selectedTeacherIds.length >= 10 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'">
+                <div class="flex items-center gap-2">
+                  <i :data-lucide="selectedTeacherIds.length >= 10 ? 'user-check-2' : 'alert-circle'" class="h-5 w-5"></i>
+                  <div>
+                    <p class="font-bold text-sm">Has seleccionado {{ selectedTeacherIds.length }} de 10 docentes requeridos.</p>
+                    <p class="text-[10px] font-medium opacity-90">Por directiva, se exige evaluar al menos 10 académicos para resguardar el carácter anónimo escolar.</p>
+                  </div>
+                </div>
+                <div v-if="selectedTeacherIds.length < 10" class="shrink-0 font-mono font-bold bg-blue-100 px-3 py-1 rounded-lg">
+                  Faltan: {{ 10 - selectedTeacherIds.length }}
+                </div>
+                <div v-else class="shrink-0 font-mono font-bold bg-emerald-600 text-white px-3 py-1 rounded-lg">
+                  ¡Listo para Evaluar!
+                </div>
+              </div>
+
+              <!-- Teachers cards Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div 
+                  v-for="t in filteredTeachers" 
+                  :key="t.id"
+                  @click="toggleTeacher(t.id)"
+                  class="p-4 border rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-sm"
+                  :class="selectedTeacherIds.includes(t.id) 
+                    ? 'bg-blue-50/70 border-blue-400 shadow-sm' 
+                    : 'bg-white border-slate-200 hover:border-slate-350'"
+                >
+                  <div class="text-left space-y-1">
+                    <h4 class="text-xs font-extrabold text-slate-900 leading-tight uppercase">{{ t.name }}</h4>
+                    <span class="inline-block px-1.5 py-0.5 rounded-md font-mono text-[9px] uppercase font-bold tracking-wider"
+                          :class="selectedTeacherIds.includes(t.id) ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'">
+                      {{ t.subject }}
+                    </span>
+                  </div>
+
+                  <!-- custom styled circle dynamic checkbox -->
+                  <div class="h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0"
+                       :class="selectedTeacherIds.includes(t.id) ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 text-transparent'">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Attempted but invalid warning -->
+              <div v-if="step1Attempted && !canGoToStep2" class="p-3 bg-red-50 text-red-800 border border-red-250 rounded-xl text-xs font-semibold text-left flex items-center gap-2">
+                <i data-lucide="alert-circle" class="h-4 w-4"></i>
+                <span>Atención: Es indispensable seleccionar un Curso y marcar como mínimo 10 docentes para ascender al siguiente paso.</span>
+              </div>
+
+              <!-- Continue Trigger -->
+              <div class="pt-4 flex justify-end">
+                <button 
+                  type="button" 
+                  @click="goToStep2"
+                  class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl transition-all shadow-md inline-flex items-center gap-2 cursor-pointer heading-font"
+                >
+                  <span>Siguiente: Calificar Docentes</span>
+                  <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- STEP 2: CONSECUTIVE CAROUSEL FOR RATINGS -->
+          <div v-if="evalStep === 2" class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-8">
+            
+            <!-- Meta information tracker -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-150 pb-4 gap-3">
+              <div class="text-left space-y-1">
+                <h2 class="text-lg font-black text-slate-900 heading-font flex items-center gap-2">
+                  <i data-lucide="user-check-2" class="h-5 w-5 text-blue-600"></i>
+                  <span>Paso 2: Calificación de Docentes</span>
+                </h2>
+                <p class="text-xs text-slate-500">Evalúa con confianza: tus respuestas individuales son totalmente privadas.</p>
+              </div>
+
+              <div class="text-xs text-slate-650 bg-slate-50 px-3 py-1.5 border border-slate-200 rounded-lg font-mono font-bold shrink-0 self-end">
+                Evaluado: <span class="text-blue-700">{{ activeTeacherIndex + 1 }}</span> / {{ selectedTeacherIds.length }} docentes
+              </div>
+            </div>
+
+            <!-- Active Teacher Box Title -->
+            <div class="p-5 bg-gradient-to-br from-blue-900 to-indigo-950 rounded-2xl border border-blue-950 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left shadow-sm">
+              <div class="space-y-1.5">
+                <span class="inline-block px-2.5 py-0.5 rounded-full font-mono text-[9px] font-black uppercase text-amber-950 bg-amber-400">Docente Escogido</span>
+                <h3 class="text-lg sm:text-xl font-black heading-font tracking-tight uppercase select-none">{{ activeTeacher.name }}</h3>
+                <p class="text-xs text-blue-200/90 font-medium tracking-wide uppercase">{{ activeTeacher.subject }}</p>
+              </div>
+              
+              <!-- Completion tracking circle -->
+              <div class="px-3.5 py-1.5 rounded-xl border bg-white/5 font-mono font-bold text-xs"
+                   :class="isTeacherFullyRated(activeTeacher.id) ? 'border-emerald-500 text-emerald-300' : 'border-amber-500/50 text-amber-200'">
+                {{ isTeacherFullyRated(activeTeacher.id) ? '✓ Completado' : '⚡ Respuestas incompletas' }}
+              </div>
+            </div>
+
+            <!-- Questions listing -->
+            <div class="space-y-6">
+              <div v-for="(q, qIdx) in ratingQuestions" :key="q.id" class="p-5 bg-slate-50 rounded-2xl border border-slate-155 space-y-4 text-left">
+                
+                <!-- Question Title -->
+                <div class="flex items-start gap-3">
+                  <div class="h-5 w-5 bg-blue-100 text-blue-800 text-[11px] font-mono font-black rounded-lg flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    Q{{ qIdx + 1 }}
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-800 font-extrabold leading-snug">{{ q.text }}</p>
+                </div>
+
+                <!-- Rating options (1-5 list) -->
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                  <button 
+                    v-for="lbl in ratingLabels" 
+                    :key="lbl.value"
+                    type="button"
+                    @click="setTeacherScore(activeTeacher.id, qIdx, lbl.value)"
+                    class="py-2.5 px-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center gap-1 select-none"
+                    :class="getTeacherScore(activeTeacher.id, qIdx) === lbl.value 
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300 transform scale-[1.02]' 
+                      : 'bg-white border-slate-200 hover:border-slate-350 text-slate-700'"
+                  >
+                    <!-- Visual visual-stars feedback indicators -->
+                    <span class="flex items-center gap-0.5 mb-0.5">
+                      <svg v-for="s in lbl.value" :key="s" class="h-3 w-3 fill-current" :class="getTeacherScore(activeTeacher.id, qIdx) === lbl.value ? 'text-amber-300' : 'text-amber-500'" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </span>
+                    <span class="text-[10px] leading-tight text-center">{{ lbl.label }}</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Stepper indicators bottom -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button 
+                type="button" 
+                @click="prevEvaluationTeacher" 
+                :disabled="activeTeacherIndex === 0"
+                class="px-4 py-2.5 text-xs font-black rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all inline-flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <i data-lucide="arrow-left" class="h-4 w-4"></i>
+                <span>Docente Anterior</span>
+              </button>
+
+              <div class="hidden sm:flex items-center gap-1 max-w-[200px] overflow-x-auto no-scrollbar py-1">
+                <span 
+                  v-for="(tid, tIdx) in selectedTeacherIds" 
+                  :key="tid"
+                  @click="activeTeacherIndex = tIdx"
+                  class="h-2 w-2 rounded-full cursor-pointer transition-all"
+                  :class="activeTeacherIndex === tIdx 
+                    ? 'bg-blue-600 scale-125 ring-2 ring-blue-300' 
+                    : (isTeacherFullyRated(tid) ? 'bg-emerald-500' : 'bg-slate-300')"
+                  :title="'Docente ' + (tIdx + 1)"
+                ></span>
+              </div>
+
+              <button 
+                v-if="activeTeacherIndex < selectedTeacherIds.length - 1"
+                type="button" 
+                @click="nextEvaluationTeacher" 
+                class="px-4 py-2.5 text-xs font-black rounded-lg bg-slate-800 text-white hover:bg-slate-900 transition-all inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Próximo Docente</span>
+                <i data-lucide="arrow-right" class="h-4 w-4"></i>
+              </button>
+
+              <button 
+                v-else
+                type="button" 
+                @click="goToStep3"
+                :disabled="!isStepperS2Complete"
+                class="px-5 py-2.5 text-xs font-black rounded-lg text-white transition-all shadow-sm inline-flex items-center gap-1 cursor-pointer"
+                :class="isStepperS2Complete ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'"
+              >
+                <span>Siguiente: Sugerencias</span>
+                <i data-lucide="arrow-right" class="h-4 w-4"></i>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- STEP 3: GENERAL INSTITUTIONAL COMPLEMENTATION QUESTIONS -->
+          <div v-if="evalStep === 3" class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-8">
+            
+            <div class="border-b border-slate-150 pb-4 space-y-2 text-left">
+              <h2 class="text-xl font-extrabold text-slate-900 heading-font">Paso 3: Sugerencias Institucionales</h2>
+              <p class="text-xs text-slate-650 font-medium">Ayúdanos a optimizar los espacios, laboratorios y áreas extracurriculares de la Unidad Educativa Santo Domingo Savio.</p>
+            </div>
+
+            <!-- Suggestion forms -->
+            <div class="space-y-6">
+              <div v-for="(oq, oqIdx) in openQuestions" :key="oq.id" class="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex flex-col gap-3 text-left">
+                
+                <div class="flex gap-2 text-slate-800">
+                  <i data-lucide="message-square" class="h-5 w-5 text-indigo-600 shrink-0 mt-0.5"></i>
+                  <span class="font-extrabold text-sm leading-snug">{{ oq.text }}</span>
+                </div>
+
+                <textarea
+                  v-model="openAnswers[oqIdx]"
+                  rows="3"
+                  placeholder="Escribe tu opinión de manera honesta y con sugerencias concretas..."
+                  class="w-full rounded-xl border border-slate-300 p-3 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-medium resize-none leading-relaxed"
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- Control toggler -->
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+              <button 
+                type="button" 
+                @click="evalStep = 2"
+                class="px-5 py-2.5 text-xs font-black rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-650 transition-colors cursor-pointer"
+              >
+                Atrás
+              </button>
+
+              <button 
+                type="button" 
+                @click="evalStep = 4"
+                class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-lg transition-all shadow-md cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <span>Siguiente: Revisión Final</span>
+                <i data-lucide="arrow-right" class="h-4.5 w-4.5"></i>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- STEP 4: REVIEW & SUBMIT CONFIRMATION -->
+          <div v-if="evalStep === 4" class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-8 text-left">
+            
+            <div class="border-b border-slate-150 pb-4 space-y-2">
+              <h2 class="text-xl font-extrabold text-slate-900 heading-font">Paso 4: Auditoría y Confirmación</h2>
+              <p class="text-xs text-slate-600">Revisa la síntesis de tus respuestas antes del volcado definitivo a la base de datos de la escuela.</p>
+            </div>
+
+            <!-- Review Indicators -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <span class="text-slate-450 text-[10px] uppercase font-bold tracking-wider font-mono">Curso Estudiantil:</span>
+                <p class="text-sm font-extrabold text-slate-900">{{ selectedCourse }}</p>
+              </div>
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <span class="text-slate-450 text-[10px] uppercase font-bold tracking-wider font-mono">Total de Personal Calificado:</span>
+                <p class="text-sm font-extrabold text-slate-900">{{ selectedTeacherIds.length }} Maestros</p>
+              </div>
+            </div>
+
+            <!-- Teachers assessed queue breakdown -->
+            <div class="space-y-3">
+              <h3 class="text-xs font-black uppercase text-slate-700 tracking-wider font-mono">Equipos Evaluados:</h3>
+              <div class="max-h-60 overflow-y-auto border border-slate-150 round-xl p-3 bg-slate-50/50 space-y-2">
+                <div v-for="tid in selectedTeacherIds" :key="tid" class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 text-xs">
+                  <div class="font-extrabold text-slate-900 uppercase">
+                    {{ getTeacherNameById(tid) }}
+                    <span class="block text-[9px] text-slate-450 normal-case font-medium tracking-wide">Materia: {{ getTeacherSubjectById(tid) }}</span>
+                  </div>
+                  <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-extrabold text-[10px] rounded-lg tracking-wider border border-emerald-100 uppercase">
+                    Completado
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUGGESTION BULLETS AUDIT -->
+            <div class="p-4 rounded-xl border border-indigo-150 bg-indigo-50/30 space-y-3">
+              <h4 class="text-xs font-extrabold text-indigo-950 uppercase tracking-widest font-mono">Tus Sugerencias Registradas:</h4>
+              <ul class="space-y-2 text-xs text-slate-700 font-medium">
+                <li v-for="(openAns, oIdx) in openAnswers" :key="oIdx" class="space-y-0.5">
+                  <p class="text-[9px] font-bold text-slate-450 uppercase font-mono tracking-wide">Pregunta {{ oIdx + 8 }}:</p>
+                  <p class="italic text-slate-650 bg-white/70 p-2 rounded-lg border border-slate-100">
+                    {{ openAns.trim() ? '"' + openAns.trim() + '"' : 'Ninguna sugerencia escrita.' }}
+                  </p>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Submission Errors if any -->
+            <div v-if="submitError" class="p-4 bg-red-50 text-red-800 border border-red-200 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <i data-lucide="alert-circle" class="h-5 w-5"></i>
+              <span>{{ submitError }}</span>
+            </div>
+
+            <!-- Interactive triggers -->
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+              <button 
+                type="button" 
+                @click="evalStep = 3"
+                class="px-5 py-2.5 text-xs font-black rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-650 transition-colors cursor-pointer"
+                :disabled="isSubmitting"
+              >
+                Atrás
+              </button>
+
+              <button 
+                type="button" 
+                @click="submitEvaluations"
+                :disabled="isSubmitting"
+                class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-lg transition-all shadow-md cursor-pointer inline-flex items-center gap-2"
+              >
+                <span v-if="isSubmitting">Guardando en Servidor...</span>
+                <span v-else>Confirmar y Enviar Evaluaciones</span>
+                <i v-if="!isSubmitting" data-lucide="check-circle-2" class="h-4.5 w-4.5"></i>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- STEP 5: SUCCESS CELEBRATION -->
+          <div v-if="evalStep === 5" class="bg-white rounded-2xl border border-slate-200 shadow-md p-8 sm:p-12 text-center space-y-6">
+            
+            <div class="mx-auto w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center border border-emerald-200 animate-bounce">
+              <i data-lucide="check-circle-2" class="h-8 w-8"></i>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-2xl font-black text-slate-900 heading-font">
+                ¡Respuestas Guardadas con Éxito!
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
+                Tus opiniones han sido registradas de forma totalmente cifrada y confidencial en el servidor educacional central. ¡Muchas gracias por potenciar el desarrollo integral SADOSA!
+              </p>
+            </div>
+
+            <div class="max-w-md mx-auto p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 text-emerald-950 text-xs font-bold font-mono">
+              Total Cargados: {{ lastSubmittedCount }} Evaluaciones Docentes
+            </div>
+
+            <div class="pt-4">
+              <button
+                type="button"
+                @click="resetEvaluationForm"
+                class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+              >
+                <i data-lucide="undo-2" class="h-4 w-4"></i>
+                <span>Volver a Inicio</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- VIEW: ADMIN PASSWORD ACCESS SCREEN -->
+      <section v-if="activeView === 'admin-login'" class="flex-grow flex items-center justify-center py-12 px-4 print:hidden">
+        <div class="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 shadow-md space-y-6 text-left">
+          
+          <div class="text-center space-y-2">
+            <div class="mx-auto h-12 w-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
+              <i data-lucide="lock" class="h-6 w-6 text-amber-500"></i>
+            </div>
+            <h3 class="text-xl font-bold tracking-tight text-slate-900 heading-font">
+              Acceso para Autoridades SADOSA
+            </h3>
+            <p class="text-slate-500 text-xs sm:text-sm">
+              Introduce la clave de la Unidad Educativa para auditar los reportes e informes consolidados.
+            </p>
+          </div>
+
+          <form @submit.prevent="submitAdminLogin" class="space-y-4">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase text-slate-700 tracking-wider">
+                Clave de Ingreso:
+              </label>
+              <input
+                type="password"
+                v-model="adminPasscode"
+                placeholder="Introduce la contraseña..."
+                class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-mono placeholder:font-sans"
+                required
+                autofocus
+              />
+            </div>
+
+            <div v-if="loginError" class="p-3 bg-red-50 text-red-800 rounded-lg border border-red-200 text-xs flex items-center gap-2">
+              <i data-lucide="alert-circle" class="h-4 w-4 shrink-0"></i>
+              <span class="font-semibold">{{ loginError }}</span>
+            </div>
+
+            <div class="flex gap-2">
+              <button
+                type="button"
+                @click="navigate('home')"
+                class="w-1/3 py-2.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Atrás
+              </button>
+              <button
+                type="submit"
+                :disabled="fetchingAdminData"
+                class="w-2/3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-all shadow-md cursor-pointer"
+              >
+                <span v-if="fetchingAdminData">Verificando...</span>
+                <span v-else>Entrar a Informes</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Advanced Connection Config (Collapsible) -->
+          <div class="border-t border-slate-100 pt-4 mt-6">
+            <button 
+              type="button"
+              @click="showConnectionConfig = !showConnectionConfig"
+              class="flex items-center justify-between w-full text-left text-slate-500 hover:text-slate-700 text-xs font-semibold select-none cursor-pointer"
+            >
+              <span class="flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                <i data-lucide="cog" class="h-3.5 w-3.5" :class="{'animate-spin': showConnectionConfig}"></i>
+                Configurar Conexión (Avanzado)
+              </span>
+              <i data-lucide="chevron-down" class="h-3 w-3 transition-transform" :class="{'rotate-180': showConnectionConfig}"></i>
+            </button>
+
+            <div v-if="showConnectionConfig" class="mt-3 p-3 bg-slate-50 rounded-lg space-y-2.5 text-left border border-slate-150">
+              <p class="text-[10px] text-slate-500 leading-relaxed">
+                Si la aplicación de evaluación está incrustada en Google Sites, modifique la URL del servidor únicamente si se cambió de servidor Cloud Run.
+              </p>
+              <div class="space-y-1">
+                <label class="block text-[10px] font-bold text-slate-700 uppercase">Servidor API Actual:</label>
+                <input 
+                  type="url" 
+                  v-model="serverUrlEnv" 
+                  class="w-full text-xs font-mono rounded border border-slate-300 p-1.5 bg-white text-slate-850 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="https://su-api-servidor.run.app"
+                />
+              </div>
+              <div class="flex justify-between items-center pt-1 gap-2">
+                <span class="inline-flex items-center gap-1 text-[10px] uppercase font-bold" :class="apiHealthy ? 'text-emerald-600' : 'text-rose-600'">
+                  <span class="h-1.5 w-1.5 rounded-full" :class="apiHealthy ? 'bg-emerald-500' : 'bg-rose-500 animate-ping'"></span>
+                  {{ apiHealthy ? 'Conectado' : 'Sin conexión' }}
+                </span>
+                <button 
+                  type="button" 
+                  @click="updateApiUrl"
+                  class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-[10px] rounded transition-colors cursor-pointer shadow-sm uppercase tracking-wider"
+                >
+                  Actualizar URL
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: ADMINISTRATIVE DASHBOARD METRICS (CONSOLIDATED REPORTS) -->
+      <section v-if="activeView === 'admin-dashboard'" class="flex-grow py-6 px-4 max-w-7xl w-full mx-auto space-y-6">
+        
+        <!-- Header Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-left">
+          <div class="space-y-1">
+            <h1 class="text-xl sm:text-2xl font-black text-slate-950 uppercase tracking-tight font-sans flex items-center gap-3">
+              <i data-lucide="bar-chart-3" class="h-6 w-6 text-blue-600"></i>
+              <span>Informe de Evaluación Semestral 2026</span>
+            </h1>
+            <p class="text-xs text-slate-500 font-medium">Unidad Educativa Santo Domingo Savio • Área Administrativa de Seguimiento Pedagógico</p>
+          </div>
+
+          <div class="flex gap-2 shrink-0 w-full md:w-auto">
+            <button
+              type="button"
+              @click="fetchAdminEvaluations(savedPasscode)"
+              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-250 font-bold text-xs rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+              <span>Actualizar</span>
+            </button>
+            
+            <button
+              type="button"
+              @click="printReport"
+              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-755 border border-slate-250 font-bold text-xs rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5 print:hidden"
+            >
+              <i data-lucide="printer" class="h-4 w-4"></i>
+              <span>Imprimir</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- System security lock inside admin panel -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden text-left shadow-sm">
+          <div class="space-y-1">
+            <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider font-mono flex items-center gap-2">
+              <i data-lucide="lock" class="h-4 w-4 text-blue-600 shrink-0"></i>
+              <span>Estado de Seguridad de la Red SADOSA</span>
+            </h2>
+            <p class="text-xs text-slate-500 max-w-xl">
+              Permite habilitar o pausar el sistema de evaluación en todas las computadoras del laboratorio en tiempo real. 
+              Actualmente: <strong :class="isLocked ? 'text-red-650 uppercase font-black font-sans' : 'text-emerald-700 uppercase font-black font-sans'">{{ isLocked ? "❌ Bloqueado / Congelado" : "🟢 Habilitado y Abierto" }}</strong>
+            </p>
+          </div>
+
+          <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3 shrink-0">
+            <button
+              type="button"
+              v-if="!showInlineLockForm"
+              @click="showInlineLockForm = true; inlineLockPass = ''; inlineLockError = ''; inlineLockSuccess = '';"
+              class="px-5 py-2.5 rounded-lg text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-all border w-full sm:w-auto"
+              :class="isLocked 
+                ? 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700 shadow-sm' 
+                : 'bg-red-50 text-red-700 border-red-205 hover:bg-red-100'"
+            >
+              <i :data-lucide="isLocked ? 'unlock' : 'lock'" class="h-4 w-4"></i>
+              <span>{{ isLocked ? 'Habilitar Evaluaciones' : 'Bloquear las Evaluaciones' }}</span>
+            </button>
+
+            <!-- Inline password confirmation for lock -->
+            <form
+              v-else
+              @submit.prevent="submitInlineLockToggle"
+              class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-2 relative z-10 text-left"
+            >
+              <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                <input
+                  type="password"
+                  v-model="inlineLockPass"
+                  placeholder="Contraseña maestra..."
+                  class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 grow placeholder:font-sans text-center"
+                  required
+                  autofocus
+                />
+                <div class="flex gap-1 shrink-0">
+                  <button
+                    type="button"
+                    @click="showInlineLockForm = false; inlineLockError = '';"
+                    class="px-3 py-1.5 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-all border border-slate-200 cursor-pointer"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="submit"
+                    :disabled="submittingInlineLock"
+                    class="px-4 py-1.5 text-white rounded-lg text-xs font-black transition-all shadow-sm shrink-0 cursor-pointer"
+                    :class="isLocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'"
+                  >
+                    <span>{{ submittingInlineLock ? 'Procesando...' : (isLocked ? 'Habilitar' : 'Bloquear') }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <span v-if="inlineLockError" class="text-[10px] text-red-700 font-bold flex items-center gap-1">
+                <span class="shrink-0 h-1.5 w-1.5 rounded-full bg-red-500" />
+                <span>{{ inlineLockError }}</span>
+              </span>
+
+              <span v-if="inlineLockSuccess" class="text-[10px] text-emerald-700 font-bold flex items-center gap-1 animate-pulse">
+                <span class="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>{{ inlineLockSuccess }}</span>
+              </span>
+            </form>
+          </div>
+        </div>
+
+        <!-- Trimester selector -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden text-left">
+          <label class="text-xs text-slate-700 font-extrabold tracking-wider uppercase font-mono flex items-center gap-2">
+            <i data-lucide="sliders" class="h-4 w-4 text-blue-650"></i>
+            <span>Filtrar Reportes Trimestrales:</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <button 
+              v-for="tFilter in ['Todos', '1er Trimestre', '2do Trimestre', '3er Trimestre']" 
+              :key="tFilter"
+              @click="selectedTrimesterFilter = tFilter"
+              class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer uppercase font-mono"
+              :class="selectedTrimesterFilter === tFilter 
+                ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-650 hover:text-slate-900 border-slate-200'"
+            >
+              {{ tFilter }}
+            </button>
+          </div>
+        </div>
+
+        <!-- PDF Export Control Panel (PRINTS ONE, SEVERAL, OR ALL TEACHERS) -->
+        <div v-show="!selectedAdminTeacherId" class="bg-gradient-to-r from-blue-50 to-indigo-50/50 p-5 rounded-2xl border border-blue-100 shadow-sm print:hidden text-left space-y-4">
+          <div class="flex items-center gap-2">
+            <div class="bg-blue-600 text-white p-2 rounded-xl">
+              <i data-lucide="file-text" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider font-mono">Centro de Descarga e Impresión de Reportes PDF</h3>
+              <p class="text-[11px] text-slate-500 font-medium font-sans">Exporta informes oficiales de evaluación para uno, varios o todos los docentes en un solo lote PDF.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-xl border border-slate-200">
+            <!-- Selector 1: Scope -->
+            <div class="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-4">
+              <span class="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">1. Ámbitos de Descarga:</span>
+              <div class="flex flex-col gap-2 mt-2">
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                  <input type="radio" value="all" v-model="printScope" class="h-4 w-4 text-blue-650 focus:ring-blue-500 rounded-full" />
+                  <span>Todos los Docentes (33)</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                  <input type="radio" value="multiple" v-model="printScope" class="h-4 w-4 text-blue-650 focus:ring-blue-500 rounded-full" />
+                  <span>Varios Docentes (Lista)</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                  <input type="radio" value="single" v-model="printScope" class="h-4 w-4 text-blue-650 focus:ring-blue-500 rounded-full" />
+                  <span>Un Docente Particular</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Selector 2: Selection based on scope -->
+            <div class="space-y-1.5 md:col-span-2 md:pl-2">
+              <span class="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">2. Selección y Configuración del lote:</span>
+              
+              <!-- If single teacher -->
+              <div v-show="printScope === 'single'" class="pt-1">
+                <select v-model="singlePrintTeacherId" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs bg-slate-50 text-slate-950 font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">-- Elige un maestro --</option>
+                  <option v-for="t in TEACHERS" :key="t.id" :value="t.id">{{ t.name }} [{{ t.subject }}]</option>
+                </select>
+              </div>
+
+              <!-- If all -->
+              <div v-show="printScope === 'all'" class="text-xs text-slate-600 font-semibold leading-relaxed pt-1 select-none">
+                Se generará un informe consolidado que agrupará a los <strong class="text-blue-700">33 docentes</strong> evaluados. Cada reporte incluirá su cabecera, tabla de criterios de desempeño, comparativas y comentarios, con un salto de página automático entre ellos.
+              </div>
+
+              <!-- If multiple -->
+              <div v-show="printScope === 'multiple'" class="space-y-2 pt-1">
+                <div class="flex gap-2">
+                  <button type="button" @click="selectedPrintTeacherIds = TEACHERS.map(t => t.id)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded text-[9px] font-extrabold transition-all uppercase font-mono cursor-pointer">Marcar Todos</button>
+                  <button type="button" @click="selectedPrintTeacherIds = []" class="px-2 py-1 bg-red-50 hover:bg-red-100 border border-red-100 text-red-700 rounded text-[9px] font-extrabold transition-all uppercase font-mono cursor-pointer">Limpiar</button>
+                </div>
+                <!-- Box height restricted with list -->
+                <div class="max-h-28 overflow-y-auto border border-slate-200 rounded-lg p-2.5 bg-slate-50 space-y-1.5">
+                  <div v-for="t in TEACHERS" :key="t.id" class="flex items-center gap-2">
+                    <input type="checkbox" :value="t.id" v-model="selectedPrintTeacherIds" :id="'print-chk-' + t.id" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer" />
+                    <label :for="'print-chk-' + t.id" class="text-[10px] font-bold text-slate-700 cursor-pointer select-none">
+                      {{ t.name }} <span class="text-slate-400 font-normal font-sans">({{ t.subject }})</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="text-[10px] font-mono text-slate-500">
+                  Seleccionados en lote: <strong class="text-blue-700">{{ selectedPrintTeacherIds.length }}</strong> de 33 docentes.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action block with download button -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-200/50">
+            <div class="text-[9px] text-slate-400 font-mono text-center sm:text-left leading-relaxed">
+              * El sistema genera un PDF limpio sin banners mediante el diálogo de impresión de su computadora. Active "Gráficos de fondo" en su diálogo para no omitir colores.
+            </div>
+            <button 
+              type="button" 
+              @click="downloadSelectedPDFs"
+              class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5"
+            >
+              <i data-lucide="printer" class="h-4 w-4"></i>
+              <span>Generar Documento PDF ({{ getPrintListCount() }} seleccionados)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Global metrics cards key indicators -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 text-left">
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <i data-lucide="users" class="h-6 w-6"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-mono tracking-wider text-slate-450 uppercase font-bold">Evaluaciones Totales</p>
+              <h3 class="text-2xl font-black text-slate-900 leading-none mt-1">{{ filteredEvaluations.length }}</h3>
+              <p class="text-[9px] text-slate-500 mt-1 font-medium leading-none">Renglones cargados</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 text-left">
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <i data-lucide="award" class="h-6 w-6"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-mono tracking-wider text-slate-450 uppercase font-bold">Promedio Escolar</p>
+              <h3 class="text-2xl font-black text-slate-900 leading-none mt-1">{{ schoolAverageScore }} %</h3>
+              <p class="text-[9px] text-slate-550 mt-1 font-semibold leading-none">{{ getPedagogicalLabel(schoolAverageScore) }}</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 text-left">
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <i data-lucide="check-circle" class="h-6 w-6"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-mono tracking-wider text-slate-450 uppercase font-bold">Estudiantes Inscritos</p>
+              <h3 class="text-2xl font-black text-slate-900 leading-none mt-1">{{ uniqueSubmissions.length }}</h3>
+              <p class="text-[9px] text-slate-500 mt-1 font-medium leading-none">Sesiones únicas abiertas</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 text-left">
+            <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
+              <i data-lucide="graduation-cap" class="h-6 w-6"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-mono tracking-wider text-slate-450 uppercase font-bold">Plantel Académico</p>
+              <h3 class="text-2xl font-black text-slate-900 leading-none mt-1">33 / 33</h3>
+              <p class="text-[9px] text-slate-550 mt-1 font-semibold leading-none text-purple-600">Docentes en seguimiento</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN NAVIGATION TABS (TEACHERS vs COMPLEMENTATION SUGGESTIONS) -->
+        <div class="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex max-w-sm font-sans print:hidden">
+          <button 
+            @click="adminTab = 'teachers'"
+            class="flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-colors cursor-pointer"
+            :class="adminTab === 'teachers' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'"
+          >
+            Maestros (Ratings)
+          </button>
+          <button 
+            @click="adminTab = 'complementation'"
+            class="flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-colors cursor-pointer"
+            :class="adminTab === 'complementation' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'"
+          >
+            Sugerencias de Entorno
+          </button>
+        </div>
+
+        <!-- TAB: TEACHERS STATISTICS AND DETAILS -->
+        <div v-if="adminTab === 'teachers'" class="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
+          
+          <!-- LEFT SIDE: TEACHER RATINGS LIST AND INDEX -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm h-fit">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-100">
+              <h2 class="text-sm font-bold uppercase tracking-widest text-slate-800 font-mono flex items-center gap-1.5">
+                <i data-lucide="users" class="h-4.5 w-4.5 text-blue-600"></i>
+                <span>Listado de Calificaciones</span>
+              </h2>
+              <span class="text-[10px] text-slate-450 font-mono font-bold">{{ filteredTeachersStats.length }} registros filtrados</span>
+            </div>
+
+            <!-- Search box in lists -->
+            <div class="relative">
+              <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"></i>
+              <input 
+                type="text" 
+                v-model="adminTeacherSearchQuery" 
+                placeholder="Filtrar por nombre de maestro o materia..." 
+                class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 font-medium"
+              />
+            </div>
+
+            <!-- Table of teachers stats -->
+            <div class="overflow-x-auto rounded-xl border border-slate-150 shadow-inner max-h-[500px] overflow-y-auto">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-slate-100 text-slate-700 uppercase font-mono border-b border-slate-150">
+                  <tr>
+                    <th scope="col" class="px-3.5 py-2.5 font-black text-[9px] tracking-wider text-center w-12">Pos</th>
+                    <th scope="col" class="px-3.5 py-2.5 font-black text-[9px] tracking-wider">Docente</th>
+                    <th scope="col" class="px-4 py-2.5 font-black text-[9px] tracking-wider text-center w-16">Evals</th>
+                    <th scope="col" class="px-4 py-2.5 font-black text-[9px] tracking-wider text-right w-24">Promedio</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-150">
+                  <tr 
+                    v-for="(t, index) in filteredTeachersStats" 
+                    :key="t.teacherId"
+                    @click="selectedAdminTeacherId = t.teacherId"
+                    class="hover:bg-blue-50/50 cursor-pointer transition-colors"
+                    :class="selectedAdminTeacherId === t.teacherId ? 'bg-blue-50 font-bold border-l-4 border-l-blue-600' : ''"
+                  >
+                    <!-- Position -->
+                    <td class="px-3.5 py-3 text-center text-slate-450 font-mono">
+                      #{{ index + 1 }}
+                    </td>
+                    <!-- Teacher & details -->
+                    <td class="px-3.5 py-3 text-left">
+                      <p class="font-extrabold uppercase text-slate-950 leading-tight text-[11px]">{{ t.teacherName }}</p>
+                      <p class="text-[9px] text-slate-500 uppercase leading-none mt-1">{{ t.subject }}</p>
+                    </td>
+                    <!-- Total Evals -->
+                    <td class="px-4 py-3 text-center text-slate-700 font-mono font-bold">
+                      {{ t.totalEvaluations }}
+                    </td>
+                    <!-- Average Badge -->
+                    <td class="px-4 py-3 text-right">
+                      <span class="inline-block px-2.5 py-1 text-[11px] font-mono font-black rounded-lg leading-none border"
+                            :class="getProgressBadgeStyles(t.averageScore, t.totalEvaluations)">
+                        {{ t.totalEvaluations > 0 ? t.averageScore + '%' : 'N/A' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+          <!-- RIGHT SIDE: SPECIFIC TEACHER FEEDBACK CARD & CHARTS -->
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 space-y-6 shadow-sm">
+            
+            <div class="flex items-center justify-between border-b border-slate-150 pb-3">
+              <h2 class="text-sm font-bold uppercase tracking-widest text-slate-800 font-mono flex items-center gap-1.5">
+                <i data-lucide="award" class="h-4.5 w-4.5 text-amber-500"></i>
+                <span>Diagnóstico Pedagógico</span>
+              </h2>
+            </div>
+
+            <!-- When no selection -->
+            <div v-if="!selectedAdminTeacherId" class="py-16 text-center text-slate-400 space-y-2">
+              <div class="mx-auto w-12 h-12 bg-slate-50 border border-slate-200 text-slate-400 rounded-full flex items-center justify-center">
+                <i data-lucide="sliders" class="h-6 w-6"></i>
+              </div>
+              <p class="text-xs font-semibold max-w-xs mx-auto">Haz clic sobre cualquier maestro de la lista para auditar su informe trimestral particular.</p>
+            </div>
+
+            <!-- When teacher exists -->
+            <div v-else class="space-y-6">
+              
+              <!-- Info Name Header -->
+              <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-left">
+                <span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-mono font-bold text-slate-600 bg-slate-200/75 uppercase tracking-wide">Ficha Curricular</span>
+                <h3 class="text-base font-black uppercase text-slate-950 tracking-tight heading-font leading-tight">{{ activeAdminTeacherStats.teacherName }}</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-mono font-bold">{{ activeAdminTeacherStats.subject }}</p>
+                
+                <div class="pt-2 border-t border-slate-200/65 flex justify-between items-center text-xs">
+                  <span class="font-mono text-[10px] text-slate-450 font-bold uppercase">Calificaciones: <strong class="text-slate-850">{{ activeAdminTeacherStats.totalEvaluations }}</strong></span>
+                  <span class="px-2.5 py-0.5 font-mono font-black border uppercase text-[10px] rounded-lg"
+                        :class="getProgressBadgeStyles(activeAdminTeacherStats.averageScore, activeAdminTeacherStats.totalEvaluations)">
+                    {{ activeAdminTeacherStats.totalEvaluations > 0 ? 'Índice: ' + activeAdminTeacherStats.averageScore + '%' : 'N/A' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Question scores rating list (rendered as visual beautiful bar charts) -->
+              <div v-if="activeAdminTeacherStats.totalEvaluations > 0" class="space-y-4">
+                <h4 class="text-xs font-bold uppercase text-slate-700 tracking-wider font-mono">Calificación por Dimensión Evaluada:</h4>
+                <div class="space-y-3">
+                  <div v-for="(avgScore, qIdx) in activeAdminTeacherStats.questionScoreAverages" :key="qIdx" class="space-y-1">
+                    <div class="flex justify-between items-start text-[10px] leading-tight text-slate-700 font-medium">
+                      <span class="font-bold flex items-center gap-1 max-w-[80%] text-left">
+                        <span class="bg-blue-100 text-blue-855 text-[8px] font-mono font-black h-3.5 w-3.5 rounded-sm inline-flex items-center justify-center shrink-0">Q{{ qIdx + 1 }}</span>
+                        {{ ratingQuestions[qIdx].text }}
+                      </span>
+                      <strong class="font-mono text-slate-900 shrink-0">{{ avgScore }}%</strong>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner flex border border-slate-200/50">
+                      <span class="h-full rounded-full transition-all duration-500" 
+                            :class="getProgressColor(avgScore)"
+                            :style="{ width: avgScore + '%' }"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Open suggestions associated specifically with the teacher -->
+              <div v-if="activeAdminTeacherStats.totalEvaluations > 0" class="space-y-3">
+                <h4 class="text-xs font-bold uppercase text-slate-700 tracking-wider font-mono flex items-center gap-1">
+                  <i data-lucide="message-square" class="h-4 w-4 text-indigo-500"></i>
+                  <span>Sugerencias del estudiantado ({{ activeAdminTeacherStats.suggestions.q10.length }}):</span>
+                </h4>
+
+                <div v-if="activeAdminTeacherStats.suggestions.q10.length === 0" class="p-4 rounded-xl bg-slate-50 border border-slate-150 text-center text-xs text-slate-450 italic">
+                  No hay comentarios escritos para este docente en este trimestre.
+                </div>
+                <div v-else class="max-h-48 overflow-y-auto space-y-2 p-2 border border-slate-150 rounded-xl bg-slate-50/50">
+                  <div v-for="(comment, cIdx) in activeAdminTeacherStats.suggestions.q10" :key="cIdx" class="p-2.5 bg-white border border-slate-100 rounded-lg text-[11px] text-slate-650 leading-relaxed font-medium italic">
+                    "{{ comment }}"
+                  </div>
+                </div>
+              </div>
+
+              <!-- Display warning if teacher has 0 reviews -->
+              <div v-else class="p-8 border border-amber-200 rounded-2xl bg-amber-55/35 text-center text-xs space-y-1.5">
+                <p class="font-black text-amber-900">Sin Datos para esta Gestión</p>
+                <p class="text-slate-600 leading-relaxed font-medium">Este maestro o maestra todavía no cuenta con evaluaciones registradas en el periodo académico trimestral seleccionado.</p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- TAB: COMPLEMENTATION SUGGESTIONS FOR SCHOOL AND ENVIRONMENT -->
+        <div v-if="adminTab === 'complementation'" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-6 text-left">
+          
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-150">
+            <div class="space-y-0.5">
+              <h2 class="text-base font-black text-slate-900 uppercase tracking-tight font-sans">
+                Sección 2: Sugerencias de Entorno y Áreas Complementarias
+              </h2>
+              <p class="text-[11px] text-slate-500 font-medium">Análisis y agrupamiento de opiniones registradas en el paso 3 de forma consolidada.</p>
+            </div>
+
+            <!-- Course filtering specific to suggestions -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <label class="text-[10px] font-mono uppercase font-black text-slate-500">Filtrar por Curso:</label>
+              <select v-model="selectedComplementationCourse" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-50 cursor-pointer">
+                <option value="">-- Todos los Cursos --</option>
+                <option v-for="c in courses" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Quick counts -->
+          <div class="p-4 p-x-5 bg-indigo-50 border border-indigo-150 text-indigo-950 font-bold rounded-xl text-xs flex justify-between items-center font-mono">
+            <span>Sugerencias Institucionales Únicas Analizadas:</span>
+            <span class="text-indigo-600 font-black text-sm">{{ filteredComplementationSubmissions.length }} Formularios</span>
+          </div>
+
+          <!-- Empty Suggestions states -->
+          <div v-if="filteredComplementationSubmissions.length === 0" class="py-16 text-center text-slate-400 space-y-2 border border-slate-200 border-dashed rounded-2xl">
+            <i data-lucide="message-square" class="h-10 w-10 mx-auto text-slate-350"></i>
+            <p class="text-xs font-bold">No se han registrado sugerencias para este filtro.</p>
+          </div>
+
+          <!-- SUGGESTIONS BLOCKS COMPILERS -->
+          <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- block loop question 8, 9, 10 -->
+            <div v-for="qIndex in [0, 1, 2]" :key="qIndex" class="space-y-4 border-r border-slate-100 last:border-0 pr-0 lg:pr-3">
+              
+              <!-- Title -->
+              <div class="p-3.5 bg-slate-100/70 border border-slate-200 text-slate-800 rounded-xl space-y-1">
+                <span class="inline-block bg-indigo-650 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md leading-none">PREGUNTA {{ qIndex + 8 }}</span>
+                <p class="text-[11px] font-black leading-snug">{{ openQuestions[qIndex].text }}</p>
+              </div>
+
+              <!-- TAGS / KEYWORDS CLOUD DYNAMICS -->
+              <div class="space-y-1.5">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-450 font-mono">Conceptos más frecuentes en respuestas:</span>
+                <div class="flex flex-wrap gap-1 p-2 bg-slate-50 rounded-xl border border-slate-150 min-h-16">
+                  <span v-if="getFrequenciesForQ(qIndex).length === 0" class="text-[10px] text-slate-400 italic m-auto font-medium">Sin coincidencias frecuentes</span>
+                  <span v-else v-for="item in getFrequenciesForQ(qIndex)" :key="item.word" 
+                        class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono tracking-wide flex items-center gap-1 border bg-white shadow-xs text-indigo-850 border-indigo-100">
+                    {{ item.word }}
+                    <strong class="text-[9px] bg-indigo-100 px-1 rounded text-indigo-700 font-black">{{ item.count }}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Comments feed list -->
+              <div class="space-y-2">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-450 font-mono">Registro de Opiniones Únicas:</span>
+                <div class="max-h-60 overflow-y-auto space-y-2 border border-slate-150 p-2 rounded-xl bg-slate-50/50">
+                  <div v-for="(sub, sIdx) in getActiveSuggestionsForQ(qIndex)" :key="sIdx" class="p-2.5 bg-white border border-slate-100 rounded-lg text-[10.5px] leading-relaxed text-slate-650 font-medium">
+                    <p class="text-slate-700 italic font-medium">
+                      "{{ sub.openAnswers[qIndex].trim() }}"
+                    </p>
+                    <span class="block text-[8px] font-mono font-bold uppercase text-slate-400 tracking-wider mt-1.5">Curso: {{ sub.studentCourse }}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- EXTREME RED RESET DATABASE ACCESS (HIDDEN IN PRINT) -->
+        <div class="bg-white p-5 rounded-2xl border border-red-200/90 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left print:hidden shadow-sm">
+          <div class="space-y-1">
+            <h2 class="text-sm font-extrabold text-red-955 uppercase tracking-wider font-mono flex items-center gap-2">
+              <i data-lucide="shield-alert" class="h-4.5 w-4.5 text-red-650"></i>
+              <span>Reiniciar Base de Datos Académicos</span>
+            </h2>
+            <p class="text-xs text-slate-500 max-w-xl">
+              Elimina todos los registros de evaluación del trimestre actual. Esta acción es definitiva, irreversible y requerirá validar la contraseña académica maestra para reconfirmar.
+            </p>
+          </div>
+
+          <div class="shrink-0 w-full md:w-auto">
+            <button 
+              type="button" 
+              v-if="!showConfirmReset"
+              @click="showConfirmReset = true; resetPasscode = ''; resetStatus = '';"
+              class="px-4 py-2.5 w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-extrabold text-xs rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <i data-lucide="trash-2" class="h-4 w-4"></i>
+              <span>Reiniciar Base de Datos</span>
+            </button>
+
+            <!-- Confirmation form password input -->
+            <form v-else @submit.prevent="executeDatabaseReset" class="flex flex-col sm:flex-row gap-2">
+              <input
+                type="password"
+                v-model="resetPasscode"
+                placeholder="Escribe la clave maestra..."
+                class="px-3 py-1.5 rounded-lg border border-red-300 text-xs font-mono bg-red-50/50 focus:outline-none focus:ring-1 focus:ring-red-500 text-center placeholder:font-sans"
+                required
+              />
+              <div class="flex gap-1">
+                <button 
+                  type="button" 
+                  @click="showConfirmReset = false" 
+                  class="px-2.5 py-1.5 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold transition-all border border-slate-200 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  class="px-3.5 py-1.5 bg-red-650 hover:bg-red-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-sm cursor-pointer"
+                >
+                  Confirmar Borrado
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- FOOTER AREA (HIDDEN IN PRINT) -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-center text-xs print:hidden w-full">
+      <div class="max-w-7xl mx-auto px-4 space-y-4">
+        <div>
+          <p>© 2026 Unidad Educativa Santo Domingo Savio Particular - Nivel Secundario.</p>
+          <p class="text-[10px] text-slate-600 font-mono">Sistema de Evaluación Docente Directo para Webs e iFrames Externos. Código de Acceso Requerido.</p>
+        </div>
+
+        <!-- Connection Configuration directly in footer for easy setup -->
+        <div class="pt-2 text-center border-t border-slate-800/60 max-w-sm mx-auto">
+          <button 
+            type="button"
+            @click="showConnectionConfig = !showConnectionConfig"
+            class="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-extrabold text-slate-500 hover:text-slate-350 cursor-pointer select-none transition-colors"
+          >
+            <i data-lucide="cog" class="h-3 w-3" :class="{'animate-spin': showConnectionConfig}"></i>
+            <span>Configurar Conexión API (Avanzado)</span>
+          </button>
+
+          <div v-if="showConnectionConfig" class="mt-3 p-4 bg-slate-850 rounded-xl border border-slate-800 space-y-2.5 text-left text-slate-300 shadow-lg">
+            <p class="text-[10px] text-slate-400 leading-relaxed font-sans">
+              Si integras esta app en un iframe o Google Sites, puedes configurar la dirección URL que se comunica con la base de datos de tu servidor.
+            </p>
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Servidor API:</label>
+              <input 
+                type="url" 
+                v-model="serverUrlEnv" 
+                class="w-full text-xs font-mono rounded border border-slate-700 p-1.5 bg-slate-900 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="https://su-api-servidor.run.app"
+              />
+            </div>
+            <div class="flex justify-between items-center pt-1 gap-2">
+              <span class="inline-flex items-center gap-1 text-[10px] uppercase font-mono font-bold" :class="apiHealthy ? 'text-emerald-400' : 'text-rose-450'">
+                <span class="h-1.5 w-1.5 rounded-full" :class="apiHealthy ? 'bg-emerald-400' : 'bg-rose-500 animate-ping'"></span>
+                {{ apiHealthy ? 'Conectado' : 'Reconectando...' }}
+              </span>
+              <button 
+                type="button" 
+                @click="updateApiUrl"
+                class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded transition-colors cursor-pointer uppercase tracking-wider"
+              >
+                Actualizar URL
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- MASTER LOCK CONTROL MODAL -->
+    <div v-show="showMasterLockModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-opacity" style="display: none;" id="master-lock-modal">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-md w-full shadow-2xl space-y-4">
+        
+        <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+          <div class="p-2.5 rounded-xl" :class="isLocked ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'">
+            <i :data-lucide="isLocked ? 'unlock' : 'lock'" class="h-5 w-5"></i>
+          </div>
+          <div class="text-left">
+            <h3 class="text-sm font-extrabold text-slate-900 heading-font">
+              {{ isLocked ? "Habilitar Evaluaciones para Estudiantes" : "Bloquear Evaluaciones para Estudiantes" }}
+            </h3>
+            <p class="text-slate-500 text-[11px] leading-tight font-medium font-sans mt-0.5">
+              {{ isLocked 
+                ? "Esto rehabilitará el ingreso de la evaluación docente en todos los dispositivos y laboratorios abiertos en simultáneo." 
+                : "Esto bloqueará de inmediato el ingreso y los envíos de evaluaciones para evitar respuestas desatendidas." }}
+            </p>
+          </div>
+        </div>
+
+        <form @submit.prevent="submitMasterLockModal" class="space-y-4">
+          <div class="space-y-1.5 text-left">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider font-mono">
+              Contraseña Maestra:
+            </label>
+            <input
+              type="password"
+              v-model="masterLockPass"
+              placeholder="Introduce la contraseña maestra..."
+              class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-xs bg-slate-50 text-center font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:font-sans"
+              required
+            />
+          </div>
+
+          <!-- Error Feedback -->
+          <div v-if="masterLockError" class="p-3 bg-red-50 text-red-800 rounded-lg border border-red-150 text-xs flex items-center gap-2 text-left">
+            <i data-lucide="alert-circle" class="h-4 w-4 shrink-0 text-red-500"></i>
+            <span class="font-semibold">{{ masterLockError }}</span>
+          </div>
+
+          <!-- Success Feedback -->
+          <div v-if="masterLockSuccessMessage" class="p-3 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-150 text-xs flex items-center gap-2 text-left animate-pulse">
+            <div class="h-4 w-4 shrink-0 rounded-full bg-emerald-550 text-white flex items-center justify-center text-[9px] font-bold">✓</div>
+            <span class="font-semibold">{{ masterLockSuccessMessage }}</span>
+          </div>
+
+          <div class="flex gap-2 justify-end pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              @click="closeMasterLockModal"
+              class="px-4 py-2 hover:bg-slate-100 text-slate-600 font-bold rounded-lg text-xs border border-transparent transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="submittingMasterLock"
+              class="px-5 py-2 font-black rounded-lg text-xs text-white transition-all shadow-sm cursor-pointer"
+              :class="isLocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-650 hover:bg-red-700'"
+            >
+              <span>{{ submittingMasterLock ? 'Procesando...' : (isLocked ? 'Habilitar Evaluaciones' : 'Bloquear Evaluaciones') }}</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- PDF PRINT DESIGN FOR BULK EXPORTS/SINGLE REPORTS -->
+    <div id="printable-report-area" class="hidden print:block bg-white text-slate-950 font-sans p-2">
+      <div v-for="(stats, statsIdx) in finalTeachersToPrint" :key="stats.teacherId" :class="statsIdx > 0 ? 'page-break pt-8' : ''" class="border-b border-dashed border-slate-300 pb-10 mb-10 last:border-0 last:pb-0 last:mb-0">
+        
+        <!-- Official Emblem Header -->
+        <div class="text-center border-b-2 border-slate-950 pb-5 mb-8">
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight uppercase">
+            Unidad Educativa Santo Domingo Savio Particular
+          </h2>
+          <p class="text-xs font-mono tracking-widest uppercase text-slate-600 mt-1">
+            Departamento de Evaluación y Dirección Académica • Secundaria
+          </p>
+          <div class="mt-4 inline-block bg-slate-950 text-white px-6 py-1 text-xs font-bold uppercase tracking-wider">
+            INFORME DIGITAL DE CALIFICACIÓN DOCENTE GESTIÓN 2026
+          </div>
+        </div>
+
+        <!-- Dossier Metadata Grid -->
+        <div class="grid grid-cols-2 gap-y-4 gap-x-6 border border-slate-950 p-4 mb-6 text-sm">
+          <div>
+            <span class="text-xs uppercase font-mono font-bold text-slate-500 block">Apellidos y Nombres del Docente:</span>
+            <strong class="text-base text-slate-950 block">{{ stats.teacherName }}</strong>
+          </div>
+          <div>
+            <span class="text-xs uppercase font-mono font-bold text-slate-500 block">Asignatura / Área Curricular:</span>
+            <strong class="text-base text-slate-950 block">{{ stats.subject }}</strong>
+          </div>
+          <div>
+            <span class="text-xs uppercase font-mono font-bold text-slate-500 block">Periodo Evaluativo Reportado:</span>
+            <strong class="text-base text-slate-950 block">
+              {{ selectedTrimesterFilter === 'Todos' ? 'Gestión Completa (Los 3 Trimestres)' : selectedTrimesterFilter }}
+            </strong>
+          </div>
+          <div>
+            <span class="text-xs uppercase font-mono font-bold text-slate-500 block">Cantidad de Evaluaciones Recibidas:</span>
+            <strong class="text-base text-slate-950 block">{{ stats.totalEvaluations }} Estudiantes</strong>
+          </div>
+          <div class="col-span-2 border-t border-slate-200 pt-2">
+            <span class="text-xs uppercase font-mono font-bold text-slate-500 block">Calificación Consolidada Global:</span>
+            <strong class="text-lg text-slate-950 block">{{ stats.averageScore }} / 100 Puntos</strong>
+          </div>
+        </div>
+
+        <!-- Section 1: Quantitative Averages -->
+        <div class="mb-6">
+          <h3 class="text-sm font-bold uppercase bg-slate-100 px-3 py-1.5 border-l-4 border-slate-950 mb-3">
+            I. Resumen de Competencias Evaluadas (Base 100 Puntos)
+          </h3>
+          <table class="w-full border border-slate-300 text-xs text-left">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-300">
+                <th class="px-4 py-2 border-r border-slate-300">N°</th>
+                <th class="px-4 py-2 border-r border-slate-300">Pregunta Formulario</th>
+                <th class="px-4 py-2 text-right">Puntaje Promedio</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300">
+              <tr v-for="(q, qIdx) in ratingQuestions" :key="q.id">
+                <td class="px-4 py-2 w-10 font-bold border-r border-slate-300 text-center">{{ q.id }}</td>
+                <td class="px-4 py-2 border-r border-slate-300">{{ q.text }}</td>
+                <td class="px-4 py-2 text-right font-bold font-mono">{{ stats.questionScoreAverages[qIdx] }} pts</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 2: Courses Participants -->
+        <div class="mb-6">
+          <h3 class="text-sm font-bold uppercase bg-slate-100 px-3 py-1.5 border-l-4 border-slate-950 mb-3 block">
+            II. Cursos Evaluadores y Desempeño Relacionado
+          </h3>
+          <table class="w-full border border-slate-300 text-xs text-left">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-300">
+                <th class="px-4 py-2 border-r border-slate-300">Grado y Curso de Secundaria</th>
+                <th class="px-4 py-2 border-r border-slate-300 text-center font-sans font-bold">Evaluaciones</th>
+                <th class="px-4 py-2 text-right">Promedio del Curso (100)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300">
+              <tr v-for="(item, courseName) in stats.courses" :key="courseName">
+                <td class="px-4 py-2 font-bold border-r border-slate-300 font-sans">{{ courseName }}</td>
+                <td class="px-4 py-2 border-r border-slate-300 text-center font-mono">{{ item.count }}</td>
+                <td class="px-4 py-2 text-right font-bold font-mono">{{ item.averageScore }} pts</td>
+              </tr>
+              <tr v-if="!stats.courses || Object.keys(stats.courses).length === 0">
+                <td colspan="3" class="px-4 py-4 text-center text-slate-500 italic font-sans font-medium">No hay registros de cursos evaluados para este periodo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section II.B: Performance over trimesters -->
+        <div class="mb-6 avoid-break">
+          <h3 class="text-sm font-bold uppercase bg-slate-100 px-3 py-1.5 border-l-4 border-slate-950 mb-3">
+            III. Comparativa de Rendimiento Histórico por Trimestre
+          </h3>
+          <table class="w-full border border-slate-300 text-xs text-left text-slate-950">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-300 font-bold">
+                <th class="px-4 py-2 border-r border-slate-300">Periodo Académico</th>
+                <th class="px-4 py-2 border-r border-slate-300 text-center">Evaluaciones Recibidas</th>
+                <th class="px-4 py-2 text-right">Calificación Promedio (100 pts)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300">
+              <tr v-for="triData in getTeacherTrimesterComparisonInVue(stats.teacherId)" :key="triData.trimester">
+                <td class="px-4 py-2 font-bold border-r border-slate-300 font-sans">{{ triData.trimester }}</td>
+                <td class="px-4 py-2 border-r border-slate-300 text-center font-mono">{{ triData.count }}</td>
+                <td class="px-4 py-2 text-right font-bold font-mono">
+                  {{ triData.count > 0 ? triData.avgScore + ' pts' : "Sin registro / Sin evaluaciones" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 3: Strengths and Weaknesses -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="border border-slate-300 p-3 rounded">
+            <h4 class="text-xs font-bold uppercase text-slate-850 border-b pb-1 mb-2 font-sans">FORTALEZAS</h4>
+            <ul v-if="stats.strengths && stats.strengths.length > 0" class="list-disc pl-4 space-y-1 text-[11px] font-sans">
+              <li v-for="s in stats.strengths" :key="s.questionId">
+                <strong>Q{{ s.questionId }}:</strong> {{ s.text }} ({{ s.score }} pts)
+              </li>
+            </ul>
+            <p v-else class="text-[11px] text-slate-500 italic font-sans font-medium">No registradas por criterios mínimos.</p>
+          </div>
+          
+          <div class="border border-slate-300 p-3 rounded">
+            <h4 class="text-xs font-bold uppercase text-slate-850 border-b pb-1 mb-2 font-sans">DEBILIDADES / ÁREAS DE MEJORA</h4>
+            <ul v-if="stats.weaknesses && stats.weaknesses.length > 0" class="list-disc pl-4 space-y-1 text-[11px] font-sans">
+              <li v-for="w in stats.weaknesses" :key="w.questionId">
+                <strong>Q{{ w.questionId }}:</strong> {{ w.text }} ({{ w.score }} pts)
+              </li>
+            </ul>
+            <p v-else class="text-[11px] text-slate-500 italic font-sans font-medium">No registradas por criterios mínimos.</p>
+          </div>
+        </div>
+
+        <!-- Section 4: Open suggestions -->
+        <div class="mb-8">
+          <h3 class="text-sm font-bold uppercase bg-slate-100 px-3 py-1.5 border-l-4 border-slate-950 mb-3">
+            IV. Respuestas a Secciones Abiertas (Sugerencias Estudiantiles)
+          </h3>
+          
+          <div class="space-y-3 text-[11px] font-sans leading-relaxed">
+            <div>
+              <strong class="block text-slate-800">Q8. ¿Qué área, taller o actividad complementaria te gustaría que la Unidad Educativa incorpore para fortalecer tu formación integral?</strong>
+              <p class="pl-3 text-slate-650 inline-block bg-slate-50 border-l border-slate-350 p-2 italic w-full">
+                {{ stats.suggestions.q8 && stats.suggestions.q8.length > 0 
+                  ? stats.suggestions.q8.map(x => `"${x}"`).join(" | ")
+                  : "Ninguna sugerencia provista." }}
+              </p>
+            </div>
+            
+            <div class="mt-2.5">
+              <strong class="block text-slate-800">Q9. ¿Qué ambiente, espacio o recurso consideras necesario implementar o mejorar para apoyar tu desarrollo académico, cultural, deportivo o tecnológico?</strong>
+              <p class="pl-3 text-slate-650 inline-block bg-slate-50 border-l border-slate-355 p-2 italic w-full">
+                {{ stats.suggestions.q9 && stats.suggestions.q9.length > 0 
+                  ? stats.suggestions.q9.map(x => `"${x}"`).join(" | ")
+                  : "Ninguna sugerencia provista." }}
+              </p>
+            </div>
+
+            <div class="mt-2.5">
+              <strong class="block text-slate-800">Q10. ¿Qué sugerencia realizarías para mejorar la calidad educativa y el bienestar estudiantil en la Unidad Educativa Santo Domingo Savio?</strong>
+              <p class="pl-3 text-slate-650 inline-block bg-slate-50 border-l border-slate-360 p-2 italic w-full">
+                {{ stats.suggestions.q10 && stats.suggestions.q10.length > 0 
+                  ? stats.suggestions.q10.map(x => `"${x}"`).join(" | ")
+                  : "Ninguna sugerencia provista." }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signature Block -->
+        <div class="mt-16 flex justify-around text-center text-xs">
+          <div class="w-48 border-t border-slate-950 pt-2 font-bold font-sans">
+            Dirección Académica
+            <span class="block text-[10px] text-slate-500 font-medium">U.E. Santo Domingo Savio</span>
+          </div>
+          <div class="w-48 border-t border-slate-950 pt-2 font-bold font-sans">
+            Firma del Docente
+            <span class="block text-[10px] text-slate-500 font-medium">C.I. ____________________</span>
+          </div>
+        </div>
+
+        <div class="mt-8 text-center text-[9px] text-slate-400 font-mono">
+          Generado automáticamente el {{ new Date().toLocaleDateString() }} por el Sistema de Evaluación Docente SADOSA 2026.
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- API connection / logic script -->
+  <script>
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+    // Direct, persistent address of the live cloud server
+    let API_BASE_URL = "https://ais-pre-hosd7ikt4ldzlosigd76o5-764021377882.us-east1.run.app";
+    
+    // Auto-heal and protocol upgrades for modern browser sandboxes (like Google Sites iframes)
+    try {
+      const hostOrigin = window.location.origin;
+      const isSitesIframe = !hostOrigin || hostOrigin === "null" || hostOrigin.includes("googleusercontent.com") || hostOrigin.includes("sites.google.com");
+      
+      if (isSitesIframe) {
+        // If the URL on-disk was replaced with localhost or dev server, auto-upgrade it back to our secure production URL for the Google Sites iframe
+        if (API_BASE_URL.includes("localhost") || API_BASE_URL.includes("127.0.0.1") || !API_BASE_URL.startsWith("https://")) {
+          API_BASE_URL = "https://ais-pre-hosd7ikt4ldzlosigd76o5-764021377882.us-east1.run.app";
+        }
+      } else {
+        // If not running inside a Google Site sandbox iframe, dynamically fallback to the domain hosting the file
+        if (hostOrigin && !hostOrigin.includes("googleusercontent.com") && !hostOrigin.includes("sites.google.com")) {
+          API_BASE_URL = hostOrigin;
+        }
+      }
+
+      // Proactively promote HTTP to HTTPS if parent container page runs on HTTPS (required by browsers to prevent Mixed Content blocking)
+      if (window.location.protocol === "https:" && API_BASE_URL.startsWith("http://")) {
+        API_BASE_URL = API_BASE_URL.replace("http://", "https://");
+      }
+
+      // Load user-defined stored custom server override
+      const storedApi = localStorage.getItem("sadosa_custom_api_url");
+      if (storedApi && storedApi.trim().startsWith("http")) {
+        API_BASE_URL = storedApi.trim();
+      }
+    } catch (e) {
+      console.warn("Storage/Origin access limited:", e);
+    }
+
+    const TEACHERS = [
+      { id: "1", name: "AYZACAYO CONDE JOSE LUIS", subject: "MÚSICA" },
+      { id: "2", name: "BECERRA VILLANUEVA MARCELO", subject: "FÍSICA" },
+      { id: "3", name: "BUSTOS LOPEZ LILIAM", subject: "C. NATURALES" },
+      { id: "4", name: "CALLIZAYA HUAYTA VIRGINIA", subject: "RELIGIÓN" },
+      { id: "5", name: "CHOQUECALLATA BOHORQUEZ EVELYN VANESSA", subject: "ART. PLÁSTICAS" },
+      { id: "6", name: "COSSIO ALVAREZ MARCO ANTONIO", subject: "QUÍMICA" },
+      { id: "7", name: "GARCIA MANCILLA LUIS DANIEL", subject: "GEOGRAFÍA / FILOSOFÍA / RELIGIÓN" },
+      { id: "8", name: "GARCIA SAHONERO KAREM", subject: "EST. SOCIALES" },
+      { id: "9", name: "GUTIERREZ TORRES CLAUDER", subject: "BIOLOGÍA / CLÍNICA / ANATOMÍA" },
+      { id: "10", name: "HUANCA ANTEZANA PAOLA ALEJANDRA", subject: "ROBÓTICA" },
+      { id: "11", name: "HUANCA GUTIERREZ LIBERTAD", subject: "RELIGIÓN" },
+      { id: "12", name: "LANZA GUARAYO LIZBETH NOELIA", subject: "GEOMETRÍA / ROBÓTICA" },
+      { id: "13", name: "MEDRANO LOPEZ RODOLFO PEDRO", subject: "PSICOLOGÍA / FILOSOFÍA" },
+      { id: "14", name: "MORALES GALINDO RICARDO WILLY", subject: "LENGUAJE / GRAMÁTICA" },
+      { id: "15", name: "NAVIA TORRICO MARIA PATRICIA", subject: "LENGUAJE / LITERATURA" },
+      { id: "16", name: "PEREDO CLAROS MILNEKA LIZBETH", subject: "FÍSICA" },
+      { id: "17", name: "PEREYRA LOPEZ HUGO OSMAN", subject: "LENGUAJE / LITERATURA" },
+      { id: "18", name: "QUINTANILLA ALARCON LIZ MARGOTH", subject: "INGLÉS" },
+      { id: "19", name: "QUIROGA MENDIVIL ROBERTO CARLOS", subject: "QUÍMICA" },
+      { id: "20", name: "QUISBERT VARGAS GUSTAVO JULIO", subject: "BIOLOGÍA" },
+      { id: "21", name: "QUISPE VARGAS NOELIA", subject: "MATEMÁTICA / FÍSICA" },
+      { id: "22", name: "RAMOS PACHECO ERIK", subject: "ED. FÍSICA" },
+      { id: "23", name: "RIOJA FLORES BEYMAR HENRY", subject: "MÚSICA" },
+      { id: "24", name: "RODRÍGUEZ ACUÑA ORLANDO", subject: "MATEMÁTICA / GEOMETRÍA / CÁLCULO" },
+      { id: "25", name: "SALVATIERRA CARTAGENA JANNETTE", subject: "INGLÉS" },
+      { id: "26", name: "SOTO MACHADO BENIGNO", subject: "ART. PLÁSTICAS" },
+      { id: "27", name: "TORRICO ARANCIBIA JONATAN MARCELO", subject: "ROBÓTICA" },
+      { id: "28", name: "USTARIZ MONTAÑO LUIS SALVADOR", subject: "FILOSOFÍA / CÍVICA" },
+      { id: "29", name: "VALDIVIA ARZE ARIEL", subject: "MATEMÁTICA / GEOMETRÍA" },
+      { id: "30", name: "YRIARTE ARNEZ CLOTILDE", subject: "GEOGRAFÍA" },
+      { id: "31", name: "ZABALA SANCHEZ MELVY VANESA", subject: "HISTORIA" },
+      { id: "32", name: "ZELADA SALVATIERRA WILFREDO", subject: "MATEMÁTICA" },
+      { id: "33", name: "ZURITA PAREDES SHANNON", subject: "ED. FÍSICA" }
+    ];
+
+    const RATING_QUESTIONS = [
+      { id: 1, text: "¿Cómo evalúas las estrategias de enseñanza que utiliza la maestra o el maestro para facilitar tu aprendizaje durante el primer trimestre?", type: "rating" },
+      { id: 2, text: "¿La maestra o el maestro explica los contenidos de manera clara, ordenada y comprensible?", type: "rating" },
+      { id: 3, text: "¿La maestra o el maestro promueve tu participación activa y el intercambio de ideas durante las clases?", type: "rating" },
+      { id: 4, text: "¿La maestra o el maestro despierta tu interés y motivación por aprender y mejorar tu rendimiento académico?", type: "rating" },
+      { id: 5, text: "¿La maestra o el maestro fomenta tu participación en las actividades organizadas por la Unidad Educativa (campañas, convivencias, actividades deportivas, ferias, celebraciones y otras)?", type: "rating" },
+      { id: 6, text: "¿Consideras que recibes un trato respetuoso, cordial y adecuado por parte de la maestra o el maestro?", type: "rating" },
+      { id: 7, text: "¿Sientes que la maestra o el maestro escucha y toma en cuenta tus opiniones, inquietudes o sugerencias?", type: "rating" }
+    ];
+
+    const OPEN_QUESTIONS = [
+      { id: 8, text: "¿Qué área, taller o actividad complementaria te gustaría que la Unidad Educativa incorpore para fortalecer tu formación integral?", type: "text" },
+      { id: 9, text: "¿Qué ambiente, espacio o recurso consideras necesario implementar o mejorar para apoyar tu desarrollo académico, cultural, deportivo o tecnológico?", type: "text" },
+      { id: 10, text: "¿Qué sugerencia realizarías para mejorar la calidad educativa y el bienestar estudiantil en la Unidad Educativa Santo Domingo Savio?", type: "text" }
+    ];
+
+    const COURSES = [
+      "1ro de Secundaria A", "1ro de Secundaria B", "1ro de Secundaria C",
+      "2do de Secundaria A", "2do de Secundaria B", "2do de Secundaria C",
+      "3ro de Secundaria A", "3ro de Secundaria B", "3ro de Secundaria C",
+      "4to de Secundaria A", "4to de Secundaria B", "4to de Secundaria C",
+      "5to de Secundaria A", "5to de Secundaria B", "5to de Secundaria C",
+      "6to de Secundaria A", "6to de Secundaria B", "6to de Secundaria C"
+    ];
+
+    createApp({
+      setup() {
+        const activeView = ref("home");
+        const apiHealthy = ref(true);
+        const courses = ref(COURSES);
+        const ratingQuestions = ref(RATING_QUESTIONS);
+        const openQuestions = ref(OPEN_QUESTIONS);
+        
+        // Lock Status System
+        const isLocked = ref(false);
+        const showMasterLockModal = ref(false);
+        const masterLockPass = ref("");
+        const masterLockError = ref("");
+        const masterLockSuccessMessage = ref("");
+        const submittingMasterLock = ref(false);
+
+        // Evaluation Forms states
+        const evalStep = ref(1);
+        const selectedCourse = ref("");
+        const selectedTrimester = ref("1er Trimestre");
+        const selectedTeacherIds = ref([]);
+        const teacherSearchQuery = ref("");
+        const scoresByTeacher = ref({});
+        const openAnswers = ref(["", "", ""]);
+        const activeTeacherIndex = ref(0);
+        const isSubmitting = ref(false);
+        const submitError = ref("");
+        const lastSubmittedCount = ref(0);
+        const step1Attempted = ref(false);
+
+        const canGoToStep2 = computed(() => {
+          return !!selectedCourse.value && !!selectedTrimester.value && selectedTeacherIds.value.length >= 10;
+        });
+
+        // Admin Dashboards States
+        const adminPasscode = ref("");
+        const loginError = ref("");
+        const savedPasscode = ref("");
+        const fetchingAdminData = ref(false);
+        const evaluations = ref([]);
+
+        // Advanced Connection Configurations
+        const showConnectionConfig = ref(false);
+        const serverUrlEnv = ref(API_BASE_URL);
+
+        function updateApiUrl() {
+          let url = serverUrlEnv.value.trim();
+          if (url.endsWith("/")) {
+            url = url.slice(0, -1);
+          }
+          if (url.startsWith("http")) {
+            API_BASE_URL = url;
+            serverUrlEnv.value = url;
+            try {
+              localStorage.setItem("sadosa_custom_api_url", url);
+            } catch(e){}
+            // Sync status immediately to test connection
+            syncLockStatus();
+          } else {
+            alert("La URL debe comenzar con http:// o https://");
+          }
+        }
+        const adminTab = ref("teachers");
+        const adminTeacherSearchQuery = ref("");
+        const selectedAdminTeacherId = ref("");
+        const selectedComplementationCourse = ref("");
+        const selectedTrimesterFilter = ref("Todos");
+        
+        // PDF print selection states
+        const printScope = ref("all");
+        const selectedPrintTeacherIds = ref([]);
+        const singlePrintTeacherId = ref("");
+        const activePrintSet = ref(null);
+        
+        const showConfirmReset = ref(false);
+        const resetPasscode = ref("");
+        const resetStatus = ref("");
+
+        const showInlineLockForm = ref(false);
+        const inlineLockPass = ref("");
+        const inlineLockError = ref("");
+        const inlineLockSuccess = ref("");
+        const submittingInlineLock = ref(false);
+
+        // Score scale definitions
+        const ratingLabels = [
+          { value: 1, label: "Muy Deficiente" },
+          { value: 2, label: "Deficiente" },
+          { value: 3, label: "Regular" },
+          { value: 4, label: "Bueno" },
+          { value: 5, label: "Excelente" }
+        ];
+
+        // Recover passcode from sessionStorage if possible
+        onMounted(() => {
+          try {
+            const storedPass = sessionStorage.getItem("sadosa_admin_pass");
+            if (storedPass) {
+              savedPasscode.value = storedPass;
+            }
+          } catch(e) {
+            console.warn("Storage restricted inside iframe context:", e);
+          }
+
+          // Initial pull + keep warm polling checks
+          syncLockStatus();
+          setInterval(syncLockStatus, 4500);
+        });
+
+        // Sync security state
+        async function syncLockStatus() {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/lock-status`);
+            if (res.ok) {
+              const data = await res.json();
+              if (isLocked.value !== data.locked) {
+                isLocked.value = data.locked;
+              }
+              apiHealthy.value = true;
+            } else {
+              apiHealthy.value = false;
+            }
+          } catch(e) {
+            console.error("Lock status polling failed:", e);
+            apiHealthy.value = false;
+          }
+          nextTick(() => lucide.createIcons());
+        }
+
+        // Navigate views helper
+        function navigate(view) {
+          activeView.value = view;
+          scrollSmoothUp();
+          nextTick(() => lucide.createIcons());
+        }
+
+        function scrollSmoothUp() {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        // Stepper Step 1 functions
+        function toggleTeacher(id) {
+          const index = selectedTeacherIds.value.indexOf(id);
+          if (index > -1) {
+            selectedTeacherIds.value.splice(index, 1);
+            delete scoresByTeacher.value[id];
+          } else {
+            selectedTeacherIds.value.push(id);
+            scoresByTeacher.value[id] = Array(7).fill(0);
+          }
+        }
+
+        function selectAllTeachers() {
+          selectedTeacherIds.value = TEACHERS.map(t => t.id);
+          TEACHERS.forEach(t => {
+            scoresByTeacher.value[t.id] = Array(7).fill(0);
+          });
+        }
+
+        function clearAllTeachers() {
+          selectedTeacherIds.value = [];
+          scoresByTeacher.value = {};
+        }
+
+        const filteredTeachers = computed(() => {
+          const q = teacherSearchQuery.value.trim().toLowerCase();
+          if (!q) return TEACHERS;
+          return TEACHERS.filter(t => 
+            t.name.toLowerCase().includes(q) || 
+            t.subject.toLowerCase().includes(q)
+          );
+        });
+
+        const activeTeacher = computed(() => {
+          const tid = selectedTeacherIds.value[activeTeacherIndex.value];
+          return TEACHERS.find(t => t.id === tid) || null;
+        });
+
+        const isStepperS2Complete = computed(() => {
+          return selectedTeacherIds.value.every(tid => isTeacherFullyRated(tid));
+        });
+
+        function isTeacherFullyRated(tid) {
+          const scores = scoresByTeacher.value[tid];
+          if (!scores) return false;
+          return scores.every(val => val > 0);
+        }
+
+        function getTeacherScore(tid, qIdx) {
+          return (scoresByTeacher.value[tid] || [])[qIdx] || 0;
+        }
+
+        function setTeacherScore(tid, qIdx, score) {
+          if (!scoresByTeacher.value[tid]) {
+            scoresByTeacher.value[tid] = Array(7).fill(0);
+          }
+          scoresByTeacher.value[tid][qIdx] = score;
+        }
+
+        function nextEvaluationTeacher() {
+          if (activeTeacherIndex.value < selectedTeacherIds.value.length - 1) {
+            activeTeacherIndex.value++;
+            scrollSmoothUp();
+          }
+        }
+
+        function prevEvaluationTeacher() {
+          if (activeTeacherIndex.value > 0) {
+            activeTeacherIndex.value--;
+            scrollSmoothUp();
+          }
+        }
+
+        function goToStep2() {
+          if (selectedCourse.value && selectedTrimester.value && selectedTeacherIds.value.length >= 10) {
+            evalStep.value = 2;
+            activeTeacherIndex.value = 0;
+            step1Attempted.value = false;
+            scrollSmoothUp();
+          } else {
+            step1Attempted.value = true;
+          }
+        }
+
+        function goToStep3() {
+          if (isStepperS2Complete.value) {
+            evalStep.value = 3;
+            scrollSmoothUp();
+          }
+        }
+
+        function getTeacherNameById(tid) {
+          return (TEACHERS.find(t => t.id === tid) || {}).name || "Desconocido";
+        }
+
+        function getTeacherSubjectById(tid) {
+          return (TEACHERS.find(t => t.id === tid) || {}).subject || "";
+        }
+
+        // Student batch form submission
+        async function submitEvaluations() {
+          if (selectedTeacherIds.value.length === 0) return;
+          isSubmitting.value = true;
+          submitError.value = "";
+          
+          try {
+            // Re-pack evaluations payload
+            const payload = selectedTeacherIds.value.map(tid => {
+              const info = TEACHERS.find(t => t.id === tid);
+              return {
+                teacherId: tid,
+                teacherName: info.name,
+                subject: info.subject,
+                studentCourse: selectedCourse.value,
+                trimester: selectedTrimester.value,
+                scores: scoresByTeacher.value[tid],
+                openAnswers: openAnswers.value
+              };
+            });
+
+            const res = await fetch(`${API_BASE_URL}/api/evaluations`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              lastSubmittedCount.value = selectedTeacherIds.value.length;
+              
+              // clear student states
+              selectedTeacherIds.value = [];
+              scoresByTeacher.value = {};
+              openAnswers.value = ["", "", ""];
+              selectedCourse.value = "";
+              selectedTrimester.value = "1er Trimestre";
+              step1Attempted.value = false;
+              activeTeacherIndex.value = 0;
+              
+              evalStep.value = 5;
+            } else {
+              const err = await res.json();
+              submitError.value = err.error || "No se pudo registrar tus respuestas. El panel puede estar temporalmente pausado.";
+            }
+          } catch(e) {
+            console.error(e);
+            submitError.value = "Error de red al conectar con el servidor.";
+          } finally {
+            isSubmitting.value = false;
+            nextTick(() => lucide.createIcons());
+          }
+        }
+
+        function resetEvaluationForm() {
+          evalStep.value = 1;
+          selectedTrimester.value = "1er Trimestre";
+          navigate("home");
+        }
+
+        function getCleanPasscode(pass) {
+          if (!pass) return "";
+          return pass.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        // Admin Access controls
+        function handleAdminToggle() {
+          if (savedPasscode.value) {
+            const clean = getCleanPasscode(savedPasscode.value);
+            fetchAdminEvaluations(clean);
+            navigate("admin-dashboard");
+            return;
+          }
+          adminPasscode.value = "";
+          loginError.value = "";
+          navigate("admin-login");
+        }
+
+        async function submitAdminLogin() {
+          const pass = adminPasscode.value.trim();
+          if (!pass) {
+            loginError.value = "Ingresa la clave académica.";
+            return;
+          }
+          fetchingAdminData.value = true;
+          loginError.value = "";
+
+          const cleanCode = getCleanPasscode(pass);
+          const result = await fetchAdminEvaluations(cleanCode);
+          fetchingAdminData.value = false;
+
+          if (result && result.success) {
+            savedPasscode.value = cleanCode;
+            try {
+              sessionStorage.setItem("sadosa_admin_pass", cleanCode);
+            } catch(e){}
+            navigate("admin-dashboard");
+          } else {
+            loginError.value = (result && result.error) || "Contraseña incorrecta o error de servidor.";
+          }
+        }
+
+        async function fetchAdminEvaluations(codeToUse) {
+          const cleanCode = getCleanPasscode(codeToUse);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/evaluations?passcode=${encodeURIComponent(cleanCode)}`);
+            if (res.ok) {
+              evaluations.value = await res.json();
+              return { success: true };
+            } else if (res.status === 401) {
+              return { success: false, error: "Contraseña incorrecta de la Unidad Educativa." };
+            } else {
+              return { success: false, error: "Error de servidor (Código de respuesta HTTP " + res.status + ")." };
+            }
+          } catch(e) {
+            console.error(e);
+            return { success: false, error: "Error de conexión: No se pudo contactar al servidor. Por favor verifique la dirección del servidor API abajo." };
+          }
+        }
+
+        function adminLogout() {
+          try {
+            sessionStorage.removeItem("sadosa_admin_pass");
+          } catch(e){}
+          savedPasscode.value = "";
+          evaluations.value = [];
+          selectedAdminTeacherId.value = "";
+          navigate("home");
+        }
+
+        // Inline lock form in admin reports
+        async function submitInlineLockToggle() {
+          const p = inlineLockPass.value.trim();
+          const cleanCode = getCleanPasscode(p);
+          submittingInlineLock.value = true;
+          inlineLockError.value = "";
+          inlineLockSuccess.value = "";
+
+          try {
+            const target = !isLocked.value;
+            const res = await fetch(`${API_BASE_URL}/api/lock-status`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ passcode: cleanCode, locked: target })
+            });
+
+            if (res.ok) {
+              isLocked.value = target;
+              inlineLockSuccess.value = `¡Red ${target ? "BLOQUEADA" : "HABILITADA"} con éxito!`;
+              inlineLockPass.value = "";
+              setTimeout(() => {
+                showInlineLockForm.value = false;
+                inlineLockSuccess.value = "";
+              }, 1500);
+            } else {
+              inlineLockError.value = "Contraseña maestra incorrecta.";
+            }
+          } catch(err) {
+            inlineLockError.value = "Error de conexión de red.";
+          } finally {
+            submittingInlineLock.value = false;
+          }
+        }
+
+        // General master lock modals controls
+        function openMasterLockModal() {
+          masterLockPass.value = "";
+          masterLockError.value = "";
+          masterLockSuccessMessage.value = "";
+          showMasterLockModal.value = true;
+          nextTick(() => lucide.createIcons());
+        }
+
+        function closeMasterLockModal() {
+          showMasterLockModal.value = false;
+        }
+
+        async function submitMasterLockModal() {
+          const p = masterLockPass.value.trim();
+          const cleanCode = getCleanPasscode(p);
+          submittingMasterLock.value = true;
+          masterLockError.value = "";
+          masterLockSuccessMessage.value = "";
+
+          try {
+            const target = !isLocked.value;
+            const res = await fetch(`${API_BASE_URL}/api/lock-status`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ passcode: cleanCode, locked: target })
+            });
+
+            if (res.ok) {
+              isLocked.value = target;
+              masterLockSuccessMessage.value = `¡Sistemas de alumnos ${target ? "PAUSADOS" : "REANUDADOS"} éxitosamente!`;
+              masterLockPass.value = "";
+              setTimeout(() => {
+                showMasterLockModal.value = false;
+                masterLockSuccessMessage.value = "";
+              }, 1500);
+            } else {
+              masterLockError.value = "Contraseña de control incorrecta.";
+            }
+          } catch(e) {
+            masterLockError.value = "Error de comunicación de red.";
+          } finally {
+            submittingMasterLock.value = false;
+          }
+        }
+
+        // DB reinforcement reset
+        async function executeDatabaseReset() {
+          const p = resetPasscode.value.trim();
+          const cleanCode = getCleanPasscode(p);
+          resetStatus.value = "";
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/reset`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ passcode: cleanCode })
+            });
+
+            if (res.ok) {
+              evaluations.value = [];
+              showConfirmReset.value = false;
+              resetPasscode.value = "";
+              alert("¡La base de datos de calificaciones ha sido totalmente vaciada!");
+            } else {
+              alert("Código maestro incorrecto. No se pudo reiniciar.");
+            }
+          } catch(err) {
+            alert("Error de conexión de red.");
+          }
+        }
+
+        // Print helper
+        function printReport() {
+          window.print();
+        }
+
+        // Math ratings stats compilers
+        const filteredEvaluations = computed(() => {
+          if (selectedTrimesterFilter.value === "Todos") return evaluations.value;
+          return evaluations.value.filter(e => {
+            const val = e.trimester || "1er Trimestre";
+            return val.includes(selectedTrimesterFilter.value) || selectedTrimesterFilter.value.includes(val);
+          });
+        });
+
+        const uniqueSubmissions = computed(() => {
+          const seen = new Set();
+          const list = [];
+          filteredEvaluations.value.forEach(item => {
+            const answersStr = (item.openAnswers || []).join("|");
+            const key = `${item.createdAt}_${item.studentCourse}_${answersStr}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push({
+                studentCourse: item.studentCourse,
+                openAnswers: item.openAnswers || ["", "", ""],
+                createdAt: item.createdAt
+              });
+            }
+          });
+          return list;
+        });
+
+        // Computed school total score
+        const schoolAverageScore = computed(() => {
+          const count = filteredEvaluations.value.length;
+          if (count === 0) return 0;
+          const sum = filteredEvaluations.value.reduce((acc, curr) => {
+            const scoresSum = curr.scores.reduce((a, b) => a + b, 0);
+            return acc + Math.round((scoresSum / 35) * 100);
+          }, 0);
+          return Math.round(sum / count);
+        });
+
+        function getPedagogicalLabel(score) {
+          if (score >= 90) return "Desempeño Excelente (Destacado)";
+          if (score >= 75) return "Buen Desempeño Escolar";
+          if (score >= 60) return "Desempeño Regular (Suficiente)";
+          if (score === 0) return "Sin Informes registradas";
+          return "Por mejorar prioritariamente";
+        }
+
+        // Process evaluations stats for all teachers
+        const teachersStatsMap = computed(() => {
+          const statsMap = {};
+          
+          // Initialise
+          TEACHERS.forEach(t => {
+            statsMap[t.id] = {
+              teacherId: t.id,
+              teacherName: t.name,
+              subject: t.subject,
+              totalEvaluations: 0,
+              averageScore: 0,
+              courses: {},
+              strengths: [],
+              weaknesses: [],
+              questionScoreAverages: Array(7).fill(0),
+              suggestions: { q8: [], q9: [], q10: [] }
+            };
+          });
+
+          // Aggregate
+          filteredEvaluations.value.forEach(evalItem => {
+            const stats = statsMap[evalItem.teacherId];
+            if (!stats) return;
+
+            stats.totalEvaluations += 1;
+            const scoresSum = evalItem.scores.reduce((a, b) => a + b, 0);
+            const evalTotalScore = Math.round((scoresSum / 35) * 100);
+            stats.averageScore += evalTotalScore;
+
+            // Group by student course
+            if (!stats.courses[evalItem.studentCourse]) {
+              stats.courses[evalItem.studentCourse] = { count: 0, averageScore: 0 };
+            }
+            stats.courses[evalItem.studentCourse].count += 1;
+            stats.courses[evalItem.studentCourse].averageScore += evalTotalScore;
+
+            evalItem.scores.forEach((score, qIdx) => {
+              const norm = Math.round((score / 5) * 100);
+              stats.questionScoreAverages[qIdx] += norm;
+            });
+
+            if (evalItem.openAnswers[0]?.trim()) stats.suggestions.q8.push(evalItem.openAnswers[0].trim());
+            if (evalItem.openAnswers[1]?.trim()) stats.suggestions.q9.push(evalItem.openAnswers[1].trim());
+            if (evalItem.openAnswers[2]?.trim()) stats.suggestions.q10.push(evalItem.openAnswers[2].trim());
+          });
+
+          // Normalize average scores division
+          Object.keys(statsMap).forEach(id => {
+            const stats = statsMap[id];
+            if (stats.totalEvaluations > 0) {
+              stats.averageScore = Math.round(stats.averageScore / stats.totalEvaluations);
+              
+              // Normalize courses averages
+              Object.keys(stats.courses).forEach(cName => {
+                stats.courses[cName].averageScore = Math.round(
+                  stats.courses[cName].averageScore / stats.courses[cName].count
+                );
+              });
+
+              stats.questionScoreAverages = stats.questionScoreAverages.map(sum => 
+                Math.round(sum / stats.totalEvaluations)
+              );
+
+              // Identify strengths and weaknesses based on Q1-Q7 average scores
+              const thresholdStrength = 80;
+              const thresholdWeakness = 60;
+
+              RATING_QUESTIONS.forEach((q, qIdx) => {
+                const score = stats.questionScoreAverages[qIdx];
+                if (score >= thresholdStrength) {
+                  stats.strengths.push({
+                    questionId: q.id,
+                    text: q.text,
+                    score
+                  });
+                } else if (score <= thresholdWeakness) {
+                  stats.weaknesses.push({
+                    questionId: q.id,
+                    text: q.text,
+                    score
+                  });
+                }
+              });
+            }
+          });
+
+          return statsMap;
+        });
+
+        const filteredTeachersStats = computed(() => {
+          const list = Object.values(teachersStatsMap.value);
+          const q = adminTeacherSearchQuery.value.trim().toLowerCase();
+          
+          let result = list;
+          if (q) {
+            result = list.filter(t => 
+              t.teacherName.toLowerCase().includes(q) || 
+              t.subject.toLowerCase().includes(q)
+            );
+          }
+
+          // Sort by rank: highest rated first (evaluated only, 0-evaluated are placed last)
+          return result.sort((a,b) => {
+            if (a.totalEvaluations === 0 && b.totalEvaluations > 0) return 1;
+            if (b.totalEvaluations === 0 && a.totalEvaluations > 0) return -1;
+            return b.averageScore - a.averageScore;
+          });
+        });
+
+        const activeAdminTeacherStats = computed(() => {
+          if (!selectedAdminTeacherId.value) return null;
+          return teachersStatsMap.value[selectedAdminTeacherId.value] || null;
+        });
+
+        // Complementation section stats
+        const filteredComplementationSubmissions = computed(() => {
+          const fc = selectedComplementationCourse.value;
+          if (!fc) return uniqueSubmissions.value;
+          return uniqueSubmissions.value.filter(s => s.studentCourse === fc);
+        });
+
+        function getActiveSuggestionsForQ(qIndex) {
+          return filteredComplementationSubmissions.value.filter(sub => 
+            sub.openAnswers[qIndex]?.trim()
+          );
+        }
+
+        // Tags Frequency calculations for Suggestions
+        function getFrequenciesForQ(qIndex) {
+          const stopWords = new Set([
+            "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en", "que", "y", "a", "o", "u", "con", "para", "por", "si", "no", "es", "me", "se", "te", "le", "lo", "les", "nos", "mi", "tu", "su", "sus", "mas", "más", "pero", "como", "cómo", "al", "este", "esta", "estos", "estas", "eso", "esa", "esos", "esas", "todo", "toda", "todos", "todas", "muy", "bien", "mejor", "sobre", "otro", "otra", "otros", "otras", "colegio", "escuela", "estudiantes", "alumnos", "clases", "clase", "profesor", "profesores", "maestro", "maestros", "docente", "docentes", "unid", "educativa", "sdomingo", "sábado", "domingo", "savio", "sadosa", "tener", "hacer", "dar", "buen", "buena", "completar", "también", "tambien", "quieren", "quiero", "gustaria", "gustaría", "deberia", "debería", "deberían", "deberian", "pueden", "puedan", "pueda", "puedo", "creo", "creeo"
+          ]);
+
+          const wordCounts = {};
+          const suggestions = getActiveSuggestionsForQ(qIndex);
+          
+          suggestions.forEach(sub => {
+            const text = sub.openAnswers[qIndex];
+            if (!text) return;
+            const words = text
+              .toLowerCase()
+              .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'¡¿\n]/g, " ")
+              .split(/\s+/);
+
+            words.forEach(word => {
+              const trim = word.trim();
+              if (trim.length > 3 && !stopWords.has(trim)) {
+                wordCounts[trim] = (wordCounts[trim] || 0) + 1;
+              }
+            });
+          });
+
+          return Object.entries(wordCounts)
+            .map(([word, count]) => ({ word: word.toUpperCase(), count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+        }
+
+        // Visual styles helpers
+        function getProgressBadgeStyles(score, count) {
+          if (count === 0) return "bg-slate-100 text-slate-500 border-slate-200";
+          if (score >= 90) return "bg-emerald-50 text-emerald-700 border-emerald-200 font-extrabold";
+          if (score >= 75) return "bg-blue-50 text-blue-700 border-blue-200 font-bold";
+          if (score >= 60) return "bg-yellow-50 text-yellow-750 border-yellow-250 font-semibold";
+          return "bg-red-50 text-red-700 border-red-200 font-black";
+        }
+
+        function getProgressColor(score) {
+          if (score >= 90) return "bg-emerald-500";
+          if (score >= 75) return "bg-blue-600";
+          if (score >= 60) return "bg-yellow-500";
+          return "bg-red-500";
+        }
+
+        const printTeachersList = computed(() => {
+          let list = [];
+          if (printScope.value === "all") {
+            list = TEACHERS.map(t => t.id);
+          } else if (printScope.value === "multiple") {
+            list = selectedPrintTeacherIds.value;
+          } else if (printScope.value === "single") {
+            if (singlePrintTeacherId.value) {
+              list = [singlePrintTeacherId.value];
+            }
+          }
+          return list.map(tid => teachersStatsMap.value[tid]).filter(Boolean);
+        });
+
+        const finalTeachersToPrint = computed(() => {
+          if (activePrintSet.value && activePrintSet.value.length > 0) {
+            return activePrintSet.value;
+          }
+          if (selectedAdminTeacherId.value) {
+            const stats = teachersStatsMap.value[selectedAdminTeacherId.value];
+            if (stats) return [stats];
+          }
+          return printTeachersList.value;
+        });
+
+        function getPrintListCount() {
+          if (printScope.value === "all") return TEACHERS.length;
+          if (printScope.value === "multiple") return selectedPrintTeacherIds.value.length;
+          if (printScope.value === "single") return singlePrintTeacherId.value ? 1 : 0;
+          return 0;
+        }
+
+        function downloadSelectedPDFs() {
+          const list = printTeachersList.value;
+          if (list.length === 0) {
+            alert("Por favor, selecciona por lo menos un docente para poder generar el PDF.");
+            return;
+          }
+          activePrintSet.value = list;
+          nextTick(() => {
+            window.print();
+            setTimeout(() => {
+              activePrintSet.value = null;
+            }, 600);
+          });
+        }
+
+        function getTeacherTrimesterComparisonInVue(teacherId) {
+          const trimesters = ["1er Trimestre", "2do Trimestre", "3er Trimestre"];
+          return trimesters.map((tri) => {
+            const triEvals = evaluations.value.filter(
+              (e) => {
+                const val = e.trimester || "1er Trimestre";
+                return e.teacherId === teacherId && (val.includes(tri) || tri.includes(val));
+              }
+            );
+            const count = triEvals.length;
+            let avgScore = 0;
+            if (count > 0) {
+              const sum = triEvals.reduce((acc, curr) => {
+                const scoresSum = curr.scores.reduce((a, b) => a + b, 0);
+                return acc + Math.round((scoresSum / 35) * 100);
+              }, 0);
+              avgScore = Math.round(sum / count);
+            }
+            return { trimester: tri, count, avgScore };
+          });
+        }
+
+        return {
+          activeView,
+          apiHealthy,
+          courses,
+          ratingQuestions,
+          openQuestions,
+          selectedTrimester,
+          canGoToStep2,
+          showConnectionConfig,
+          serverUrlEnv,
+          updateApiUrl,
+          
+          // PDF printing states
+          printScope,
+          selectedPrintTeacherIds,
+          singlePrintTeacherId,
+          activePrintSet,
+          printTeachersList,
+          finalTeachersToPrint,
+          getPrintListCount,
+          downloadSelectedPDFs,
+          getTeacherTrimesterComparisonInVue,
+          
+          // Lock states
+          isLocked,
+          showMasterLockModal,
+          masterLockPass,
+          masterLockError,
+          masterLockSuccessMessage,
+          submittingMasterLock,
+          openMasterLockModal,
+          closeMasterLockModal,
+          submitMasterLockModal,
+
+          // Stepper form states
+          evalStep,
+          selectedCourse,
+          selectedTeacherIds,
+          teacherSearchQuery,
+          scoresByTeacher,
+          openAnswers,
+          activeTeacherIndex,
+          isSubmitting,
+          submitError,
+          lastSubmittedCount,
+          step1Attempted,
+          ratingLabels,
+          toggleTeacher,
+          selectAllTeachers,
+          clearAllTeachers,
+          filteredTeachers,
+          activeTeacher,
+          isStepperS2Complete,
+          isTeacherFullyRated,
+          getTeacherScore,
+          setTeacherScore,
+          nextEvaluationTeacher,
+          prevEvaluationTeacher,
+          goToStep2,
+          goToStep3,
+          getTeacherNameById,
+          getTeacherSubjectById,
+          submitEvaluations,
+          resetEvaluationForm,
+
+          // Admin reports states
+          adminPasscode,
+          loginError,
+          savedPasscode,
+          fetchingAdminData,
+          evaluations,
+          adminTab,
+          adminTeacherSearchQuery,
+          selectedAdminTeacherId,
+          selectedComplementationCourse,
+          selectedTrimesterFilter,
+          showConfirmReset,
+          resetPasscode,
+          resetStatus,
+          showInlineLockForm,
+          inlineLockPass,
+          inlineLockError,
+          inlineLockSuccess,
+          submittingInlineLock,
+          submitInlineLockToggle,
+          executeDatabaseReset,
+          printReport,
+          filteredEvaluations,
+          uniqueSubmissions,
+          schoolAverageScore,
+          getPedagogicalLabel,
+          filteredTeachersStats,
+          activeAdminTeacherStats,
+          filteredComplementationSubmissions,
+          getActiveSuggestionsForQ,
+          getFrequenciesForQ,
+          getProgressBadgeStyles,
+          getProgressColor,
+
+          // functions
+          navigate,
+          handleAdminToggle,
+          submitAdminLogin,
+          adminLogout
+        };
+      }
+    }).mount("#app");
+  </script>
+</body>
+</html>

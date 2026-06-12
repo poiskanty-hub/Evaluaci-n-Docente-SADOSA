@@ -1,0 +1,6 @@
+{
+  "name": "Evaluación Docente SADOSA",
+  "description": "Sistema interactivo para la evaluación en línea de maestros y maestras de la Unidad Educativa Santo Domingo Savio Particular, nivel secundario. Incluye centralización de datos y panel de informes con descarga de reportes PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
